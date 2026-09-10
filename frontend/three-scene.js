@@ -1,49 +1,55 @@
-/* =========================================================
-   CHANDRASETU
-   THREE.JS MOON + SATELLITE
-========================================================= */
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 
-const moonContainer = document.getElementById("moon3d");
+const container = document.getElementById("moon3d");
 
-if (moonContainer && typeof THREE !== "undefined") {
-
-    /* =====================================================
-       SCENE
-    ====================================================== */
+if (container) {
 
     const scene = new THREE.Scene();
 
 
-    /* =====================================================
-       CAMERA
-    ====================================================== */
+    // CAMERA
 
     const camera = new THREE.PerspectiveCamera(
         42,
-        moonContainer.clientWidth / moonContainer.clientHeight,
+        container.clientWidth / container.clientHeight,
         0.1,
         100
     );
 
-    camera.position.set(0, 0, 6.2);
+    camera.position.set(0, 0, 6.3);
 
 
-    /* =====================================================
-       RENDERER
-    ====================================================== */
+    let renderer;
+    let rendererError;
 
-    const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true
-    });
+    try {
+
+        renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true
+        });
+
+    } catch (error) {
+
+        rendererError = error;
+        console.error("Unable to initialize the orbital renderer", error);
+        container.textContent = "ORBITAL VIEW UNAVAILABLE";
+
+    }
+
+    if (!renderer) {
+        throw rendererError || new Error("Unable to initialize the orbital renderer");
+    }
 
     renderer.setPixelRatio(
         Math.min(window.devicePixelRatio, 2)
     );
 
     renderer.setSize(
-        moonContainer.clientWidth,
-        moonContainer.clientHeight
+        container.clientWidth,
+        container.clientHeight
     );
 
     renderer.setClearColor(
@@ -51,26 +57,22 @@ if (moonContainer && typeof THREE !== "undefined") {
         0
     );
 
-    if ("outputColorSpace" in renderer) {
-        renderer.outputColorSpace =
-            THREE.SRGBColorSpace;
-    }
+    renderer.outputColorSpace =
+        THREE.SRGBColorSpace;
 
-    moonContainer.innerHTML = "";
+    container.innerHTML = "";
 
-    moonContainer.appendChild(
+    container.appendChild(
         renderer.domElement
     );
 
 
-    /* =====================================================
-       LIGHTING
-    ====================================================== */
+
 
     const ambientLight =
         new THREE.AmbientLight(
             0xffffff,
-            0.35
+            0.8
         );
 
     scene.add(
@@ -80,14 +82,14 @@ if (moonContainer && typeof THREE !== "undefined") {
 
     const sunLight =
         new THREE.DirectionalLight(
-            0xfff1d2,
-            2.5
+            0xffffff,
+            3.5
         );
 
     sunLight.position.set(
         -4,
-        3,
-        5
+        4,
+        6
     );
 
     scene.add(
@@ -95,201 +97,57 @@ if (moonContainer && typeof THREE !== "undefined") {
     );
 
 
-    /* =====================================================
-       MOON TEXTURE
-    ====================================================== */
-
-    const textureCanvas =
-        document.createElement("canvas");
-
-    textureCanvas.width = 1024;
-    textureCanvas.height = 512;
-
-    const ctx =
-        textureCanvas.getContext("2d");
-
-
-    /* Moon base colour */
-
-    const gradient =
-        ctx.createLinearGradient(
-            0,
-            0,
-            1024,
-            512
+    const satelliteLight =
+        new THREE.DirectionalLight(
+            0xffffff,
+            2
         );
 
-    gradient.addColorStop(
-        0,
-        "#999891"
+    satelliteLight.position.set(
+        4,
+        3,
+        6
     );
 
-    gradient.addColorStop(
-        0.5,
-        "#777771"
-    );
-
-    gradient.addColorStop(
-        1,
-        "#555750"
-    );
-
-    ctx.fillStyle =
-        gradient;
-
-    ctx.fillRect(
-        0,
-        0,
-        1024,
-        512
+    scene.add(
+        satelliteLight
     );
 
 
-    /* Small surface details */
-
-    for (
-        let i = 0;
-        i < 700;
-        i++
-    ) {
-
-        const x =
-            Math.random() * 1024;
-
-        const y =
-            Math.random() * 512;
-
-        const radius =
-            1 + Math.random() * 12;
-
-        const brightness =
-            70 +
-            Math.floor(
-                Math.random() * 60
-            );
-
-        ctx.fillStyle =
-            `rgba(
-                ${brightness},
-                ${brightness},
-                ${brightness},
-                ${0.05 + Math.random() * 0.12}
-            )`;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x,
-            y,
-            radius,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.fill();
-    }
 
 
-    /* Craters */
-
-    for (
-        let i = 0;
-        i < 90;
-        i++
-    ) {
-
-        const x =
-            Math.random() * 1024;
-
-        const y =
-            Math.random() * 512;
-
-        const radius =
-            6 +
-            Math.random() * 25;
-
-
-        ctx.strokeStyle =
-            "rgba(35,35,32,0.30)";
-
-        ctx.lineWidth =
-            1 +
-            Math.random() * 2;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x,
-            y,
-            radius,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.stroke();
-
-
-        /* Crater highlight */
-
-        ctx.strokeStyle =
-            "rgba(210,210,195,0.10)";
-
-        ctx.beginPath();
-
-        ctx.arc(
-            x - 2,
-            y - 2,
-            Math.max(
-                2,
-                radius - 2
-            ),
-            Math.PI,
-            Math.PI * 1.8
-        );
-
-        ctx.stroke();
-    }
-
+    const textureLoader =
+        new THREE.TextureLoader();
 
     const moonTexture =
-        new THREE.CanvasTexture(
-            textureCanvas
+        textureLoader.load(
+            "assets/moon-real.jpg",
+            undefined,
+            undefined,
+            error => {
+                console.error("Unable to load the Moon texture", error);
+            }
         );
 
-    if ("colorSpace" in moonTexture) {
-
-        moonTexture.colorSpace =
-            THREE.SRGBColorSpace;
-
-    }
+    moonTexture.colorSpace =
+        THREE.SRGBColorSpace;
 
 
-    /* =====================================================
-       MOON
-    ====================================================== */
+
 
     const moonGeometry =
         new THREE.SphereGeometry(
             1.55,
-            96,
-            96
+            128,
+            128
         );
-
 
     const moonMaterial =
         new THREE.MeshStandardMaterial({
-
-            map:
-                moonTexture,
-
-            roughness:
-                1,
-
-            metalness:
-                0
-
+            map: moonTexture,
+            roughness: 1,
+            metalness: 0
         });
-
 
     const moon =
         new THREE.Mesh(
@@ -297,484 +155,322 @@ if (moonContainer && typeof THREE !== "undefined") {
             moonMaterial
         );
 
+    moon.rotation.y = -0.3;
 
     scene.add(
         moon
     );
 
 
-    /* =====================================================
-       MOON EDGE GLOW
-    ====================================================== */
+    // MOON EDGE
 
-    const atmosphereGeometry =
+    const glowGeometry =
         new THREE.SphereGeometry(
-            1.59,
-            64,
-            64
+            1.58,
+            96,
+            96
         );
 
-
-    const atmosphereMaterial =
+    const glowMaterial =
         new THREE.MeshBasicMaterial({
-
-            color:
-                0x87959c,
-
-            transparent:
-                true,
-
-            opacity:
-                0.055,
-
-            side:
-                THREE.BackSide
-
+            color: 0x8b979d,
+            transparent: true,
+            opacity: 0.04,
+            side: THREE.BackSide
         });
 
-
-    const atmosphere =
+    const glow =
         new THREE.Mesh(
-            atmosphereGeometry,
-            atmosphereMaterial
+            glowGeometry,
+            glowMaterial
         );
 
-
     scene.add(
-        atmosphere
+        glow
     );
 
 
-    /* =====================================================
-       ORBIT SETTINGS
-
-       Moon radius = 1.55
-
-       Orbit is kept safely OUTSIDE Moon.
-    ====================================================== */
-
-    const ORBIT_X =
-        2.65;
-
-    const ORBIT_Y =
-        2.00;
-
-    const ORBIT_ROTATION =
-        THREE.MathUtils.degToRad(
-            -12
-        );
 
 
-    /* =====================================================
-       ORBIT LINE
-    ====================================================== */
+    const ORBIT_WIDTH = 2.65;
+
+    const ORBIT_HEIGHT = 2.05;
+
+    const ORBIT_TILT =
+        THREE.MathUtils.degToRad(-12);
+
+
+
 
     const orbitCurve =
         new THREE.EllipseCurve(
-
             0,
             0,
-
-            ORBIT_X,
-            ORBIT_Y,
-
+            ORBIT_WIDTH,
+            ORBIT_HEIGHT,
             0,
             Math.PI * 2,
-
             false,
             0
         );
 
-
     const orbitPoints =
-        orbitCurve.getPoints(
-            180
-        );
+        orbitCurve
+            .getPoints(250)
+            .map(point =>
 
-
-    const orbitGeometry =
-        new THREE.BufferGeometry()
-            .setFromPoints(
-
-                orbitPoints.map(
-                    point =>
-                        new THREE.Vector3(
-
-                            point.x,
-                            point.y,
-                            -0.1
-                        )
+                new THREE.Vector3(
+                    point.x,
+                    point.y,
+                    0
                 )
 
             );
 
+    const orbitGeometry =
+        new THREE.BufferGeometry()
+            .setFromPoints(
+                orbitPoints
+            );
 
     const orbitMaterial =
         new THREE.LineBasicMaterial({
-
-            color:
-                0x607078,
-
-            transparent:
-                true,
-
-            opacity:
-                0.30
-
+            color: 0x68777f,
+            transparent: true,
+            opacity: 0.3
         });
-
 
     const orbit =
         new THREE.LineLoop(
-
             orbitGeometry,
             orbitMaterial
-
         );
 
-
     orbit.rotation.z =
-        ORBIT_ROTATION;
-
+        ORBIT_TILT;
 
     scene.add(
         orbit
     );
 
 
-    /* =====================================================
-       SECOND DECORATIVE ORBIT
-    ====================================================== */
 
-    const orbit2Curve =
+
+    const secondOrbitCurve =
         new THREE.EllipseCurve(
-
             0,
             0,
-
-            2.9,
-            1.72,
-
+            2.95,
+            1.7,
             0,
-            Math.PI * 2,
-
-            false,
-            0
+            Math.PI * 2
         );
 
+    const secondOrbitPoints =
+        secondOrbitCurve
+            .getPoints(220)
+            .map(point =>
 
-    const orbit2Points =
-        orbit2Curve.getPoints(
-            180
-        );
-
-
-    const orbit2Geometry =
-        new THREE.BufferGeometry()
-            .setFromPoints(
-
-                orbit2Points.map(
-                    point =>
-                        new THREE.Vector3(
-
-                            point.x,
-                            point.y,
-                            -0.2
-                        )
+                new THREE.Vector3(
+                    point.x,
+                    point.y,
+                    -0.2
                 )
 
             );
 
+    const secondOrbitGeometry =
+        new THREE.BufferGeometry()
+            .setFromPoints(
+                secondOrbitPoints
+            );
 
-    const orbit2Material =
+    const secondOrbitMaterial =
         new THREE.LineBasicMaterial({
-
-            color:
-                0x455159,
-
-            transparent:
-                true,
-
-            opacity:
-                0.12
-
+            color: 0x445159,
+            transparent: true,
+            opacity: 0.13
         });
 
-
-    const orbit2 =
+    const secondOrbit =
         new THREE.LineLoop(
-
-            orbit2Geometry,
-            orbit2Material
-
+            secondOrbitGeometry,
+            secondOrbitMaterial
         );
 
-
-    orbit2.rotation.z =
-        THREE.MathUtils.degToRad(
-            25
-        );
-
+    secondOrbit.rotation.z =
+        THREE.MathUtils.degToRad(28);
 
     scene.add(
-        orbit2
+        secondOrbit
     );
 
 
-    /* =====================================================
-       SATELLITE
-    ====================================================== */
+    // SATELLITE ORBIT GROUP
 
-    const satellite =
+    const satelliteOrbit =
         new THREE.Group();
 
-
-    /* Satellite body */
-
-    const bodyGeometry =
-        new THREE.BoxGeometry(
-            0.22,
-            0.14,
-            0.30
-        );
-
-
-    const bodyMaterial =
-        new THREE.MeshStandardMaterial({
-
-            color:
-                0x999fa2,
-
-            roughness:
-                0.55,
-
-            metalness:
-                0.6
-
-        });
-
-
-    const satelliteBody =
-        new THREE.Mesh(
-
-            bodyGeometry,
-            bodyMaterial
-
-        );
-
-
-    satellite.add(
-        satelliteBody
-    );
-
-
-    /* =====================================================
-       GOLD INSTRUMENT
-    ====================================================== */
-
-    const instrumentGeometry =
-        new THREE.BoxGeometry(
-            0.12,
-            0.09,
-            0.13
-        );
-
-
-    const instrumentMaterial =
-        new THREE.MeshStandardMaterial({
-
-            color:
-                0xc79a43,
-
-            roughness:
-                0.45,
-
-            metalness:
-                0.6
-
-        });
-
-
-    const instrument =
-        new THREE.Mesh(
-
-            instrumentGeometry,
-            instrumentMaterial
-
-        );
-
-
-    instrument.position.z =
-        -0.20;
-
-
-    satellite.add(
-        instrument
-    );
-
-
-    /* =====================================================
-       SOLAR PANELS
-    ====================================================== */
-
-    const panelGeometry =
-        new THREE.BoxGeometry(
-            0.55,
-            0.025,
-            0.18
-        );
-
-
-    const panelMaterial =
-        new THREE.MeshStandardMaterial({
-
-            color:
-                0x1c2930,
-
-            roughness:
-                0.5,
-
-            metalness:
-                0.65
-
-        });
-
-
-    const leftPanel =
-        new THREE.Mesh(
-
-            panelGeometry,
-            panelMaterial
-
-        );
-
-
-    leftPanel.position.x =
-        -0.38;
-
-
-    satellite.add(
-        leftPanel
-    );
-
-
-    const rightPanel =
-        new THREE.Mesh(
-
-            panelGeometry,
-            panelMaterial
-
-        );
-
-
-    rightPanel.position.x =
-        0.38;
-
-
-    satellite.add(
-        rightPanel
-    );
-
-
-    /* =====================================================
-       ANTENNA
-    ====================================================== */
-
-    const antennaGeometry =
-        new THREE.CylinderGeometry(
-
-            0.012,
-            0.012,
-            0.27,
-            10
-        );
-
-
-    const antennaMaterial =
-        new THREE.MeshBasicMaterial({
-
-            color:
-                0xd0d3d4
-
-        });
-
-
-    const antenna =
-        new THREE.Mesh(
-
-            antennaGeometry,
-            antennaMaterial
-
-        );
-
-
-    antenna.position.y =
-        0.18;
-
-
-    antenna.rotation.z =
-        THREE.MathUtils.degToRad(
-            45
-        );
-
-
-    satellite.add(
-        antenna
-    );
-
-
-    /* Small golden tracking dot */
-
-    const markerGeometry =
-        new THREE.SphereGeometry(
-            0.035,
-            12,
-            12
-        );
-
-
-    const markerMaterial =
-        new THREE.MeshBasicMaterial({
-
-            color:
-                0xd6a454
-
-        });
-
-
-    const marker =
-        new THREE.Mesh(
-
-            markerGeometry,
-            markerMaterial
-
-        );
-
-
-    satellite.add(
-        marker
-    );
-
-
-    satellite.scale.set(
-        0.85,
-        0.85,
-        0.85
-    );
-
-
     scene.add(
-        satellite
+        satelliteOrbit
     );
 
 
-    /* =====================================================
-       STARS
-    ====================================================== */
+    // SATELLITE MODEL HOLDER
+
+    const satelliteHolder =
+        new THREE.Group();
+
+    satelliteOrbit.add(
+        satelliteHolder
+    );
+
+
+    let satelliteModel = null;
+
+
+    // LOAD REAL SATELLITE
+
+    const gltfLoader =
+        new GLTFLoader();
+
+    const dracoLoader =
+        new DRACOLoader();
+
+    dracoLoader.setDecoderPath(
+        "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/"
+    );
+
+    gltfLoader.setDRACOLoader(
+        dracoLoader
+    );
+
+    gltfLoader.load(
+
+        "assets/lro.glb",
+
+        gltf => {
+
+            console.log(
+                "SATELLITE LOADED"
+            );
+
+            const model =
+                gltf.scene;
+
+
+            const box =
+                new THREE.Box3()
+                    .setFromObject(
+                        model
+                    );
+
+
+            const center =
+                box.getCenter(
+                    new THREE.Vector3()
+                );
+
+
+            const size =
+                box.getSize(
+                    new THREE.Vector3()
+                );
+
+
+            model.position.set(
+                -center.x,
+                -center.y,
+                -center.z
+            );
+
+
+            const biggestSide =
+                Math.max(
+                    size.x,
+                    size.y,
+                    size.z
+                );
+
+
+            const scale =
+                0.9 / biggestSide;
+
+
+            model.scale.setScalar(
+                scale
+            );
+
+
+            model.traverse(child => {
+
+                if (child.isMesh) {
+
+                    child.frustumCulled =
+                        false;
+
+                    if (child.material) {
+
+                        child.material.side =
+                            THREE.DoubleSide;
+
+                        child.material.needsUpdate =
+                            true;
+
+                    }
+
+                }
+
+            });
+
+
+            satelliteHolder.add(
+                model
+            );
+
+
+            satelliteModel =
+                model;
+
+        },
+
+
+        progress => {
+
+            if (progress.total) {
+
+                const percent =
+                    progress.loaded /
+                    progress.total *
+                    100;
+
+                console.log(
+                    "Satellite loading " +
+                    percent.toFixed(0) +
+                    "%"
+                );
+
+            }
+
+        },
+
+
+        error => {
+
+            console.error(
+                "SATELLITE ERROR",
+                error
+            );
+
+        }
+
+    );
+
+
+    // STARS
 
     const starGeometry =
         new THREE.BufferGeometry();
-
 
     const starPositions =
         [];
@@ -782,32 +478,23 @@ if (moonContainer && typeof THREE !== "undefined") {
 
     for (
         let i = 0;
-        i < 350;
+        i < 500;
         i++
     ) {
 
-        const x =
-            THREE.MathUtils.randFloatSpread(
-                12
-            );
-
-        const y =
-            THREE.MathUtils.randFloatSpread(
-                8
-            );
-
-        const z =
-            THREE.MathUtils.randFloat(
-                -4,
-                -1
-            );
-
-
         starPositions.push(
-            x,
-            y,
-            z
+
+            THREE.MathUtils
+                .randFloatSpread(12),
+
+            THREE.MathUtils
+                .randFloatSpread(8),
+
+            THREE.MathUtils
+                .randFloat(-5, -1)
+
         );
+
     }
 
 
@@ -816,7 +503,6 @@ if (moonContainer && typeof THREE !== "undefined") {
         "position",
 
         new THREE.Float32BufferAttribute(
-
             starPositions,
             3
         )
@@ -826,28 +512,17 @@ if (moonContainer && typeof THREE !== "undefined") {
 
     const starMaterial =
         new THREE.PointsMaterial({
-
-            color:
-                0xc2c7ca,
-
-            size:
-                0.018,
-
-            transparent:
-                true,
-
-            opacity:
-                0.6
-
+            color: 0xbfc7cb,
+            size: 0.018,
+            transparent: true,
+            opacity: 0.65
         });
 
 
     const stars =
         new THREE.Points(
-
             starGeometry,
             starMaterial
-
         );
 
 
@@ -856,73 +531,74 @@ if (moonContainer && typeof THREE !== "undefined") {
     );
 
 
-    /* =====================================================
-       MOUSE MOVEMENT
-    ====================================================== */
+    // MOUSE
 
     let mouseX = 0;
+
     let mouseY = 0;
 
-    let targetX = 0;
-    let targetY = 0;
+    let smoothX = 0;
+
+    let smoothY = 0;
 
 
-    moonContainer.addEventListener(
-
+    container.addEventListener(
         "mousemove",
-
-        function (event) {
+        event => {
 
             const rect =
-                moonContainer
+                container
                     .getBoundingClientRect();
 
 
             mouseX =
                 (
-                    (
-                        event.clientX -
-                        rect.left
-                    ) /
-                    rect.width
-                ) * 2 - 1;
+                    event.clientX -
+                    rect.left
+                )
+                /
+                rect.width
+                *
+                2
+                -
+                1;
 
 
             mouseY =
                 (
-                    (
-                        event.clientY -
-                        rect.top
-                    ) /
-                    rect.height
-                ) * 2 - 1;
+                    event.clientY -
+                    rect.top
+                )
+                /
+                rect.height
+                *
+                2
+                -
+                1;
 
         }
-
     );
 
 
-    moonContainer.addEventListener(
-
+    container.addEventListener(
         "mouseleave",
-
-        function () {
+        () => {
 
             mouseX = 0;
+
             mouseY = 0;
 
         }
-
     );
 
 
-    /* =====================================================
-       ANIMATION
-    ====================================================== */
+    // CLOCK
 
     const clock =
         new THREE.Clock();
 
+
+    // ANIMATION
 
     function animate() {
 
@@ -935,125 +611,125 @@ if (moonContainer && typeof THREE !== "undefined") {
             clock.getElapsedTime();
 
 
-        /* Rotate Moon */
+        // ROTATE MOON
 
         moon.rotation.y +=
-            0.0007;
+            0.00035;
 
 
-        targetX +=
+        smoothX +=
             (
-                mouseX * 0.10 -
-                targetX
-            ) * 0.04;
+                mouseX * 0.04 -
+                smoothX
+            )
+            *
+            0.04;
 
 
-        targetY +=
+        smoothY +=
             (
-                mouseY * 0.07 -
-                targetY
-            ) * 0.04;
+                mouseY * 0.03 -
+                smoothY
+            )
+            *
+            0.04;
 
 
         moon.rotation.x =
-            targetY;
+            smoothY;
 
 
-        moon.rotation.z =
-            targetX * 0.25;
-
-
-        atmosphere.rotation.copy(
+        glow.rotation.copy(
             moon.rotation
         );
 
 
-        /* =================================================
-           SATELLITE ORBIT
-
-           IMPORTANT FIX:
-           Satellite follows EXACT same visible ellipse.
-        ================================================= */
+        // SATELLITE REVOLUTION
 
         const angle =
-            elapsed * 0.38;
+            elapsed * 0.35;
 
 
-        let orbitX =
-            Math.cos(angle) *
-            ORBIT_X;
+        const x =
+            Math.cos(angle)
+            *
+            ORBIT_WIDTH;
 
 
-        let orbitY =
-            Math.sin(angle) *
-            ORBIT_Y;
+        const y =
+            Math.sin(angle)
+            *
+            ORBIT_HEIGHT;
 
 
-        /* Rotate position to match orbit line */
-
-        const rotatedX =
-            orbitX *
-            Math.cos(
-                ORBIT_ROTATION
-            )
+        const finalX =
+            x *
+            Math.cos(ORBIT_TILT)
             -
-            orbitY *
-            Math.sin(
-                ORBIT_ROTATION
-            );
+            y *
+            Math.sin(ORBIT_TILT);
 
 
-        const rotatedY =
-            orbitX *
-            Math.sin(
-                ORBIT_ROTATION
-            )
+        const finalY =
+            x *
+            Math.sin(ORBIT_TILT)
             +
-            orbitY *
-            Math.cos(
-                ORBIT_ROTATION
-            );
+            y *
+            Math.cos(ORBIT_TILT);
 
 
-        satellite.position.set(
-
-            rotatedX,
-            rotatedY,
-            0.15
-
+        satelliteOrbit.position.set(
+            finalX,
+            finalY,
+            1
         );
 
 
-        /* Satellite follows direction */
-
-        satellite.rotation.z =
-            angle +
-            ORBIT_ROTATION +
+        satelliteOrbit.rotation.z =
+            angle
+            +
+            ORBIT_TILT
+            +
             Math.PI / 2;
 
 
-        /* Small antenna animation */
+        // MAKE SATELLITE EASY TO SEE
 
-        antenna.rotation.x =
+        satelliteHolder.rotation.x =
+            THREE.MathUtils.degToRad(20);
+
+
+        satelliteHolder.rotation.y =
+            elapsed * 0.25;
+
+
+        satelliteHolder.rotation.z =
             Math.sin(
-                elapsed * 1.5
-            ) * 0.08;
+                elapsed * 0.7
+            )
+            *
+            0.08;
 
 
-        /* Slowly move decorative orbit */
+        // DECORATIVE ORBIT
 
-        orbit2.rotation.z =
-            THREE.MathUtils.degToRad(
-                25
-            ) +
+        secondOrbit.rotation.z =
+            THREE.MathUtils.degToRad(28)
+            +
             Math.sin(
-                elapsed * 0.05
-            ) * 0.05;
+                elapsed * 0.08
+            )
+            *
+            0.04;
 
+
+        // STARS
 
         stars.rotation.z =
             elapsed * 0.001;
 
+
+        // DRAW
 
         renderer.render(
             scene,
@@ -1066,22 +742,17 @@ if (moonContainer && typeof THREE !== "undefined") {
     animate();
 
 
-    /* =====================================================
-       WINDOW RESIZE
-    ====================================================== */
+    // RESIZE
 
     window.addEventListener(
-
         "resize",
-
-        function () {
+        () => {
 
             const width =
-                moonContainer.clientWidth;
-
+                container.clientWidth;
 
             const height =
-                moonContainer.clientHeight;
+                container.clientHeight;
 
 
             camera.aspect =
@@ -1097,7 +768,6 @@ if (moonContainer && typeof THREE !== "undefined") {
             );
 
         }
-
     );
 
 }
