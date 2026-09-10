@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChandraSetu — Lunar Image Correspondence Lab</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="combinestyle.css">
+
+</head>
+
+
+<body>
+
+    <!-- =====================================================
+         CUSTOM CURSOR
+    ====================================================== -->
+
+    <div class="cursor-reticle">
+
+        <div class="cursor-cross horizontal"></div>
+        <div class="cursor-cross vertical"></div>
+
+        <div class="cursor-dot"></div>
+
+        <span class="cursor-label">
+            TRACK
+        </span>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         BACKGROUND
+    ====================================================== -->
+
+    <div class="space-background">
+
+        <div class="stars stars-one"></div>
+        <div class="stars stars-two"></div>
+
+        <div class="background-orbit orbit-one"></div>
+        <div class="background-orbit orbit-two"></div>
+
+    </div>
+
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-mark">
+                CS
+            </div>
+
+            <div class="brand-text">
+
+                <div class="brand-name">
+                    CHANDRASETU
+                </div>
+
+                <div class="brand-subtitle">
+                    LUNAR IMAGE CORRESPONDENCE LAB
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <nav class="navigation">
+
+            <a href="#overview" class="nav-link active">
+                OVERVIEW
+            </a>
+
+            <a href="#workspace" class="nav-link">
+                WORKSPACE
+            </a>
+
+            <a href="#method" class="nav-link">
+                METHOD
+            </a>
+
+            <a href="#results" class="nav-link">
+                RESULTS
+            </a>
+
+        </nav>
+
+
+        <div class="system-status" id="systemStatus">
+            <span class="status-dot"></span>
+            <span id="systemStatusText">CHECKING BACKEND</span>
+        </div>
+
+    </header>
+
+
+
+
+
+    <main>
+
+
+        <section class="hero" id="overview">
+
+            <div class="hero-content">
+
+                <div class="eyebrow">
+                    CHANDRAYAAN-2 · REMOTE SENSING
+                </div>
+
+
+                <h1>
+                    Lunar image
+                    <span>correspondence.</span>
+                </h1>
+
+
+                <p class="hero-description">
+
+                    A research interface for identifying corresponding
+                    lunar surface features across observations captured
+                    under different illumination and viewing conditions.
+
+                </p>
+
+
+                <div class="hero-meta">
+
+                    <div>
+
+                        <span>
+                            MISSION
+                        </span>
+
+                        <strong>
+                            CHANDRAYAAN-2
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            DOMAIN
+                        </span>
+
+                        <strong>
+                            LUNAR CARTOGRAPHY
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            MODE
+                        </span>
+
+                        <strong>
+                            MULTI-MODAL
+                        </strong>
+                    </div>
+                </div>
+                <div class="hero-line"></div>
+                <div class="hero-note">
+                    <span class="note-number">
+                        01
+                    </span>
+                    <span>
+                        SAME TERRAIN · DIFFERENT SUN ANGLE
+                    </span>
+                </div>
+            </div>
+            <div class="moon-visual">
+
+                <div class="moon-visual-header">
+
+                    <span>
+                        ORBITAL OBSERVATION
+                    </span>
+
+                    <span>
+                        FRAME 02A
+                    </span>
+
+                </div>
+
+
+                <div id="moon3d">
+
+                    <div class="moon-loading">
+                        INITIALIZING ORBITAL VIEW
+                    </div>
+
+                </div>
+
+
+                <div class="moon-target target-one">
+                    <span></span>
+                </div>
+
+                <div class="moon-target target-two">
+                    <span></span>
+                </div>
+
+
+                <div class="moon-data">
+
+                    <div>
+
+                        <span>
+                            ALT
+                        </span>
+
+                        <strong>
+                            100 KM
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            TRACK
+                        </span>
+
+                        <strong>
+                            STABLE
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            FOV
+                        </span>
+
+                        <strong>
+                            12.8°
+                        </strong>
+
+                    </div>
+
+                </div>
+            </div>
+        </section>
+        <section class="illumination-bar">
+
+            <div class="illumination-icon">
+
+                <div class="sun-core"></div>
+
+                <div class="sun-ray ray-1"></div>
+                <div class="sun-ray ray-2"></div>
+                <div class="sun-ray ray-3"></div>
+                <div class="sun-ray ray-4"></div>
+
+            </div>
+
+
+            <div class="illumination-text">
+
+                <span>
+                    OBSERVATION CONDITION
+                </span>
+
+                <strong>
+                    VARIABLE SUN ANGLE
+                </strong>
+
+            </div>
+
+
+            <div class="illumination-value">
+
+                <span>
+                    INCIDENCE
+                </span>
+
+                <strong id="incidenceValue">
+                    42.6°
+                </strong>
+
+            </div>
+
+
+            <div class="illumination-value">
+
+                <span>
+                    AZIMUTH
+                </span>
+
+                <strong id="azimuthValue">
+                    137.4°
+                </strong>
+
+            </div>
+
+
+            <div class="illumination-line"></div>
+
+        </section>
+
+
+
+
+        <section class="section workspace-section" id="workspace">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-index">
+                        02
+                    </span>
+
+                    <h2>
+                        Observation workspace
+                    </h2>
+
+                </div>
+
+
+                <p>
+                    Load two lunar observations and configure
+                    correspondence parameters.
+                </p>
+
+            </div>
+
+
+
+
+            <div class="observation-grid">
+
+
+
+                <div class="observation-card">
+
+                    <div class="card-top">
+
+                        <span>
+                            OBSERVATION A
+                        </span>
+
+                        <span class="card-code">
+                            REF-01
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="image-upload"
+                        id="imageBoxA"
+                    >
+
+                        <input
+                            type="file"
+                            id="imageA"
+                            accept="image/*"
+                            hidden
+                        >
+
+
+                        <div class="upload-placeholder">
+
+                            <div class="upload-cross">
+                                +
+                            </div>
+
+                            <strong>
+                                LOAD LUNAR IMAGE
+                            </strong>
+
+                            <span>
+                                JPG / PNG · MAX 20 MB
+                            </span>
+
+                        </div>
+
+
+                        <img
+                            id="previewA"
+                            class="uploaded-image"
+                            alt="Observation A"
+                        >
+
+
+                        <div class="upload-overlay">
+                            CLICK TO REPLACE
+                        </div>
+
+                    </div>
+
+
+                    <div class="file-information">
+
+                        <span id="fileNameA">
+                            NO IMAGE SELECTED
+                        </span>
+
+                        <span>
+                            INPUT A
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- IMAGE B -->
+
+                <div class="observation-card">
+
+                    <div class="card-top">
+
+                        <span>
+                            OBSERVATION B
+                        </span>
+
+                        <span class="card-code">
+                            REF-02
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        class="image-upload"
+                        id="imageBoxB"
+                    >
+
+                        <input
+                            type="file"
+                            id="imageB"
+                            accept="image/*"
+                            hidden
+                        >
+
+
+                        <div class="upload-placeholder">
+
+                            <div class="upload-cross">
+                                +
+                            </div>
+
+                            <strong>
+                                LOAD LUNAR IMAGE
+                            </strong>
+
+                            <span>
+                                JPG / PNG · MAX 20 MB
+                            </span>
+
+                        </div>
+
+
+                        <img
+                            id="previewB"
+                            class="uploaded-image"
+                            alt="Observation B"
+                        >
+
+
+                        <div class="upload-overlay">
+                            CLICK TO REPLACE
+                        </div>
+
+                    </div>
+
+
+                    <div class="file-information">
+
+                        <span id="fileNameB">
+                            NO IMAGE SELECTED
+                        </span>
+
+                        <span>
+                            INPUT B
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- CONFIGURATION -->
+
+            <div class="configuration-panel">
+
+                <div class="config-heading">
+
+                    <span>
+                        ANALYSIS PARAMETERS
+                    </span>
+
+                    <span>
+                        CONFIG / 02
+                    </span>
+
+                </div>
+
+
+                <div class="config-grid">
+
+
+                    <div class="config-item">
+
+                        <label>
+                            SENSOR
+                        </label>
+
+                        <select id="sensorSelect">
+
+                            <option value="OHRC">
+                                OHRC
+                            </option>
+
+                            <option value="TMC">
+                                TMC
+                            </option>
+
+                            <option value="IIRS">
+                                IIRS
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <div class="config-item">
+
+                        <label>
+                            ILLUMINATION MODEL
+                        </label>
+
+                        <select id="illuminationSelect">
+
+                            <option value="clahe" selected>
+                                CLAHE · ILLUMINATION NORMALISATION
+                            </option>
+
+                            <option value="equalize">
+                                GLOBAL HISTOGRAM EQUALISATION
+                            </option>
+
+                            <option value="disabled">
+                                DISABLED
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <div class="config-item">
+
+                        <label>
+                            FEATURE ENGINE
+                        </label>
+
+                        <select id="featureSelect">
+
+                            <option value="sift" selected>
+                                SIFT
+                            </option>
+
+                            <option value="orb">
+                                ORB
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+
+                    <div class="config-item threshold-item">
+
+                        <label>
+
+                            <span>
+                                MATCH RATIO THRESHOLD
+                            </span>
+
+                            <span id="thresholdValue">
+                                0.75
+                            </span>
+
+                        </label>
+
+
+                        <input
+                            type="range"
+                            id="thresholdInput"
+                            min="0.55"
+                            max="0.90"
+                            step="0.01"
+                            value="0.75"
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- ANALYSIS CONTROLS -->
+
+            <div class="analysis-controls">
+
+                <button
+                    id="analyzeBtn"
+                    class="primary-button"
+                >
+
+                    <span>
+                        RUN CORRESPONDENCE
+                    </span>
+
+                    <span class="button-arrow">
+                        →
+                    </span>
+
+                </button>
+
+
+                <button
+                    id="resetAnalysis"
+                    class="secondary-button"
+                >
+                    RESET
+                </button>
+
+
+                <div class="analysis-status">
+
+                    <span class="status-pulse"></span>
+
+                    <span id="analysisStatus">
+                        READY FOR OBSERVATIONS
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- PROGRESS -->
+
+            <div class="analysis-progress">
+
+                <div class="progress-top">
+
+                    <span id="analysisStage">
+                        STANDBY
+                    </span>
+
+                    <span id="analysisPercent">
+                        0%
+                    </span>
+
+                </div>
+
+
+                <div class="progress-track">
+
+                    <div
+                        class="progress-fill"
+                        id="progressFill"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             OPTICAL DETECTION SYSTEM
+        ====================================================== -->
+
+        <section class="section detection-section">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-index">
+                        03
+                    </span>
+
+                    <h2>
+                        Optical detection system
+                    </h2>
+
+                </div>
+
+
+                <p>
+                    Orbital sensing interface for feature localization
+                    and terrain tracking.
+                </p>
+
+            </div>
+
+
+
+            <div class="detection-layout">
+
+
+                <!-- RADAR -->
+
+                <div class="detection-screen">
+
+                    <div class="screen-header">
+
+                        <span>
+                            ODS-01
+                        </span>
+
+                        <span>
+                            ACQUISITION ACTIVE
+                        </span>
+
+                    </div>
+
+
+                    <canvas id="opticalCanvas"></canvas>
+
+
+                    <div class="screen-label frame-label">
+                        FRAME 02A
+                    </div>
+
+
+                    <div class="screen-label sensor-label">
+                        VIS-NIR
+                    </div>
+
+
+                    <div class="screen-label fov-label">
+                        FOV 12.8°
+                    </div>
+
+
+                    <div class="tracking-line"></div>
+
+
+                    <div class="screen-footer">
+
+                        <div>
+
+                            <span>
+                                LAT
+                            </span>
+
+                            <strong id="telemetryLat">
+                                23.41°
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                LON
+                            </span>
+
+                            <strong id="telemetryLon">
+                                31.72°
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                TRACK
+                            </span>
+
+                            <strong>
+                                STABLE
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- INFORMATION -->
+
+                <div class="detection-info">
+
+                    <div class="info-block">
+
+                        <span>
+                            SYSTEM
+                        </span>
+
+                        <h3>
+                            Surface feature detection
+                        </h3>
+
+                        <p>
+
+                            The detection layer identifies terrain
+                            structures that can remain useful even
+                            when their brightness changes with
+                            illumination.
+
+                        </p>
+
+                    </div>
+
+
+                    <div class="info-list">
+
+                        <div>
+
+                            <span>
+                                DETECTION MODE
+                            </span>
+
+                            <strong>
+                                ORBITAL SCAN
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                WAVELENGTH
+                            </span>
+
+                            <strong>
+                                VIS / NIR
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                TRACKING
+                            </span>
+
+                            <strong>
+                                LOCKED
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             METHOD
+        ====================================================== -->
+
+        <section
+            class="section method-section"
+            id="method"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-index">
+                        04
+                    </span>
+
+                    <h2>
+                        Correspondence pipeline
+                    </h2>
+
+                </div>
+
+
+                <p>
+                    From raw observations to a validated terrain match.
+                </p>
+
+            </div>
+
+
+
+            <!-- PIPELINE -->
+
+            <div class="pipeline">
+
+
+                <div class="pipeline-step active">
+
+                    <span>
+                        01
+                    </span>
+
+                    <strong>
+                        NORMALIZE
+                    </strong>
+
+                    <small>
+                        Illumination
+                    </small>
+
+                </div>
+
+
+                <div class="pipeline-line"></div>
+
+
+                <div class="pipeline-step">
+
+                    <span>
+                        02
+                    </span>
+
+                    <strong>
+                        EXTRACT
+                    </strong>
+
+                    <small>
+                        Features
+                    </small>
+
+                </div>
+
+
+                <div class="pipeline-line"></div>
+
+
+                <div class="pipeline-step">
+
+                    <span>
+                        03
+                    </span>
+
+                    <strong>
+                        CORRESPOND
+                    </strong>
+
+                    <small>
+                        Matches
+                    </small>
+
+                </div>
+
+
+                <div class="pipeline-line"></div>
+
+
+                <div class="pipeline-step">
+
+                    <span>
+                        04
+                    </span>
+
+                    <strong>
+                        REGISTER
+                    </strong>
+
+                    <small>
+                        Geometry
+                    </small>
+
+                </div>
+
+
+                <div class="pipeline-line"></div>
+
+
+                <div class="pipeline-step">
+
+                    <span>
+                        05
+                    </span>
+
+                    <strong>
+                        VALIDATE
+                    </strong>
+
+                    <small>
+                        Confidence
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- METHOD CARDS -->
+
+            <div class="method-grid">
+
+
+                <div class="method-card">
+
+                    <span class="method-number">
+                        01
+                    </span>
+
+                    <h3>
+                        Illumination normalization
+                    </h3>
+
+                    <p>
+
+                        Reduces brightness differences introduced
+                        by changing solar incidence angles.
+
+                    </p>
+
+                </div>
+
+
+                <div class="method-card">
+
+                    <span class="method-number">
+                        02
+                    </span>
+
+                    <h3>
+                        Surface feature extraction
+                    </h3>
+
+                    <p>
+
+                        Searches for stable terrain structures such
+                        as crater rims, ridges and shadow boundaries.
+
+                    </p>
+
+                </div>
+
+
+                <div class="method-card">
+
+                    <span class="method-number">
+                        03
+                    </span>
+
+                    <h3>
+                        Multi-modal correspondence
+                    </h3>
+
+                    <p>
+
+                        Compares observations while accounting for
+                        scale and illumination variation.
+
+                    </p>
+
+                </div>
+
+
+                <div class="method-card">
+
+                    <span class="method-number">
+                        04
+                    </span>
+
+                    <h3>
+                        Geometric validation
+                    </h3>
+
+                    <p>
+
+                        Validates candidate matches using spatial
+                        consistency and registration error.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             RESULTS
+        ====================================================== -->
+
+        <section
+            class="section results-section"
+            id="results"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-index">
+                        05
+                    </span>
+
+                    <h2>
+                        Correspondence results
+                    </h2>
+
+                </div>
+
+
+                <p>
+                    Quantitative summary of the current observation pair.
+                </p>
+
+            </div>
+
+
+
+            <!-- METRICS -->
+
+            <div class="metrics-grid">
+
+
+                <div class="metric-card">
+
+                    <span>
+                        FEATURES
+                    </span>
+
+                    <strong id="featureCount">
+                        —
+                    </strong>
+
+                    <small>
+                        LOCALIZED
+                    </small>
+
+                </div>
+
+
+                <div class="metric-card">
+
+                    <span>
+                        MATCHES
+                    </span>
+
+                    <strong id="matchCount">
+                        —
+                    </strong>
+
+                    <small>
+                        VERIFIED
+                    </small>
+
+                </div>
+
+
+                <div class="metric-card">
+
+                    <span>
+                        CONFIDENCE
+                    </span>
+
+                    <strong id="confidence">
+                        —
+                    </strong>
+
+                    <small>
+                        HIGH
+                    </small>
+
+                </div>
+
+
+                <div class="metric-card">
+
+                    <span>
+                        RMSE
+                    </span>
+
+                    <strong id="registrationError">
+                        —
+                    </strong>
+
+                    <small>
+                        REGISTRATION
+                    </small>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- CORRESPONDENCE MAP -->
+
+            <div class="correspondence-board">
+
+                <div class="board-header">
+
+                    <span>
+                        FEATURE CORRESPONDENCE MAP
+                    </span>
+
+                    <span id="mapStatus">
+                        WAITING FOR ANALYSIS
+                    </span>
+
+                </div>
+
+
+                <div class="correspondence-map real-output">
+                    <div class="result-placeholder" id="matchPlaceholder">
+                        RUN CORRESPONDENCE TO VIEW VERIFIED MATCHES
+                    </div>
+                    <img id="matchVisualization" class="match-result-image" alt="Verified feature correspondence">
+                </div>
+
+                <div class="board-footer">
+
+                    <span>
+                        VERIFIED CORRESPONDENCE CONFIDENCE
+                    </span>
+
+                    <strong id="targetConfidence">
+                        —
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- REAL IMAGE OUTPUTS -->
+
+            <div class="result-gallery">
+
+                <div class="result-panel">
+                    <span>NORMALISED A · REFERENCE</span>
+                    <div class="result-image-wrap">
+                        <div class="result-placeholder">WAITING FOR ANALYSIS</div>
+                        <img id="normalizedAResult" class="analysis-result-image" alt="Normalised reference image">
+                    </div>
+                </div>
+
+                <div class="result-panel">
+                    <span>NORMALISED B · MOVING</span>
+                    <div class="result-image-wrap">
+                        <div class="result-placeholder">WAITING FOR ANALYSIS</div>
+                        <img id="normalizedBResult" class="analysis-result-image" alt="Normalised moving image">
+                    </div>
+                </div>
+
+                <div class="result-panel">
+                    <span>REGISTERED OVERLAY</span>
+                    <div class="result-image-wrap">
+                        <div class="result-placeholder">WAITING FOR ANALYSIS</div>
+                        <img id="registeredResult" class="analysis-result-image" alt="Registered lunar image overlay">
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- INTERPRETATION -->
+
+            <div class="interpretation-grid">
+
+
+                <div class="interpretation-main">
+
+                    <span>
+                        INTERPRETATION
+                    </span>
+
+                    <h3 id="interpretationTitle">
+                        Run correspondence to analyse the observation pair.
+                    </h3>
+
+
+                    <p id="interpretationText">
+                        Results will be calculated by the Python/OpenCV backend from the two uploaded images.
+                    </p>
+
+                </div>
+
+
+
+                <div class="interpretation-note">
+
+                    <span>
+                        RESEARCH NOTE
+                    </span>
+
+
+                    <p id="researchNote">
+                        CLAHE illumination normalisation, SIFT/ORB feature extraction, RANSAC verification and homography registration are used in the current baseline.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             BENCHMARK
+        ====================================================== -->
+
+        <section class="section benchmark-section">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-index">
+                        06
+                    </span>
+
+                    <h2>
+                        Benchmark snapshot
+                    </h2>
+
+                </div>
+
+
+                <p>
+                    Live metrics from the current backend analysis run.
+                </p>
+
+            </div>
+
+
+            <div class="benchmark-table">
+
+                <div class="benchmark-row benchmark-header">
+                    <span>METHOD</span>
+                    <span>FEATURES</span>
+                    <span>CONFIDENCE</span>
+                    <span>RMSE</span>
+                    <span>TIME</span>
+                </div>
+
+                <div class="benchmark-row">
+                    <span id="benchmarkMethod">—</span>
+                    <span id="benchmarkFeatures">—</span>
+                    <span id="benchmarkConfidence">—</span>
+                    <span id="benchmarkRMSE">—</span>
+                    <span id="benchmarkTime">—</span>
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             FINAL STATEMENT
+        ====================================================== -->
+
+        <section class="final-section">
+
+            <div class="final-line"></div>
+
+
+            <div class="final-content">
+
+                <span>
+                    CHANDRASETU / RESEARCH INTERFACE
+                </span>
+
+
+                <h2>
+                    Seeing the same Moon
+                    <br>
+                    under a different Sun.
+                </h2>
+
+
+                <p>
+
+                    A correspondence framework designed to support
+                    lunar mapping, terrain registration and analysis
+                    across changing observation conditions.
+
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+
+    <!-- =====================================================
+         TOAST
+    ====================================================== -->
+
+    <div
+        class="toast"
+        id="toast"
+    >
+
+        <span class="toast-indicator"></span>
+
+        <span id="toastMessage">
+            System ready.
+        </span>
+
+    </div>
+
+
+
+    <!-- =====================================================
+         THREE.JS
+         
+         IMPORTANT:
+         Three.js MUST come before three-scene.js
+    ====================================================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+    <!-- 3D Moon -->
+    <script src="three-scene.js"></script>
+
+    <!-- Main website JavaScript -->
+    <script src="combinescript.js"></script>
+
+</body>
+
+</html>
