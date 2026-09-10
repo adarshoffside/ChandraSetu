@@ -38,6 +38,18 @@ const opticalCanvas = $("opticalCanvas");
 const systemStatus = $("systemStatus");
 const systemStatusText = $("systemStatusText");
 
+const terrainCanvas = $("terrainCanvas");
+const terrainEmpty = $("terrainEmpty");
+const terrainPointStatus = $("terrainPointStatus");
+const terrainInstruction = $("terrainInstruction");
+const terrainSource = $("terrainSource");
+const terrainMeasurementType = $("terrainMeasurementType");
+const terrainGsd = $("terrainGsd");
+const terrainSunIncidence = $("terrainSunIncidence");
+const terrainLoadBtn = $("terrainLoadBtn");
+const terrainCalculateBtn = $("terrainCalculateBtn");
+const terrainClearBtn = $("terrainClearBtn");
+
 function setText(id, value) {
     const el = $(id);
     if (el) el.textContent = value;
@@ -358,6 +370,24 @@ function resetAnalysis() {
     setText("interpretationTitle", "Run correspondence to analyse the observation pair.");
     setText("interpretationText", "Results will be calculated by the Python/OpenCV backend from the two uploaded images.");
     setText("researchNote", "CLAHE illumination normalisation, SIFT/ORB feature extraction, RANSAC verification and homography registration are used in the current baseline.");
+    terrainState.image = null;
+    terrainState.points = [];
+    terrainState.canvasScale = 1;
+    if (terrainCanvas) {
+        const ctx = terrainCanvas.getContext("2d");
+        ctx.clearRect(0, 0, terrainCanvas.width, terrainCanvas.height);
+        terrainCanvas.width = 300;
+        terrainCanvas.height = 180;
+    }
+    if (terrainEmpty) terrainEmpty.style.display = "grid";
+    if (terrainPointStatus) terrainPointStatus.textContent = "SELECT AN IMAGE";
+    if (terrainGsd) terrainGsd.value = "";
+    if (terrainSunIncidence) terrainSunIncidence.value = "";
+    if (terrainSource) terrainSource.value = "A";
+    if (terrainMeasurementType) terrainMeasurementType.value = "crater_depth";
+    resetTerrainResults();
+    setTerrainInstruction();
+    syncTerrainSunAngle();
     updatePipeline(0);
     showToast("Workspace reset.");
 }
@@ -368,6 +398,265 @@ if (resetBtn) resetBtn.addEventListener("click", resetAnalysis);
 document.addEventListener("keydown", event => {
     if (event.ctrlKey && event.key === "Enter") runAnalysis();
 });
+
+
+const terrainState = {
+    image: null,
+    source: "A",
+    points: [],
+    canvasScale: 1
+};
+
+function terrainPreviewForSource() {
+    return terrainSource?.value === "B" ? previewB : previewA;
+}
+
+function terrainFileForSource() {
+    return terrainSource?.value === "B" ? state.imageB : state.imageA;
+}
+
+function setTerrainInstruction() {
+    if (!terrainMeasurementType || !terrainInstruction) return;
+    if (terrainMeasurementType.value === "crater_diameter") {
+        terrainInstruction.textContent = "Click two opposite points on the crater rim, then press CALCULATE.";
+    } else if (terrainMeasurementType.value === "crater_depth") {
+        terrainInstruction.textContent = "Click the two endpoints of the crater shadow in the shadow direction, then press CALCULATE.";
+    } else {
+        terrainInstruction.textContent = "Click the two endpoints of the hill or ridge shadow in the shadow direction, then press CALCULATE.";
+    }
+}
+
+function syncTerrainSunAngle() {
+    if (!terrainSunIncidence || !terrainMeasurementType) return;
+    const diameterMode = terrainMeasurementType.value === "crater_diameter";
+    terrainSunIncidence.disabled = diameterMode;
+    if (diameterMode) {
+        terrainSunIncidence.value = "";
+        return;
+    }
+    const sourceValue = terrainSource?.value === "B" ? sunIncidenceB?.value : sunIncidenceA?.value;
+    if (sourceValue !== undefined && sourceValue !== "") {
+        terrainSunIncidence.value = sourceValue;
+    }
+}
+
+function resetTerrainResults() {
+    setText("terrainPixelDistance", "—");
+    setText("terrainGroundDistance", "—");
+    setText("terrainResultValue", "—");
+    setText("terrainSolarElevation", "—");
+    setText("terrainResultName", "ESTIMATED RELIEF");
+    setText("terrainResultMethod", "WAITING FOR MEASUREMENT");
+    setText("terrainWarning", "Depth and height are estimates. Use the real image ground resolution and Sun incidence angle from mission metadata for meaningful values.");
+}
+
+function drawTerrainCanvas() {
+    if (!terrainCanvas) return;
+    const ctx = terrainCanvas.getContext("2d");
+    ctx.clearRect(0, 0, terrainCanvas.width, terrainCanvas.height);
+
+    if (!terrainState.image) return;
+
+    ctx.drawImage(
+        terrainState.image,
+        0,
+        0,
+        terrainCanvas.width,
+        terrainCanvas.height
+    );
+
+    terrainState.points.forEach((point, index) => {
+        const radius = Math.max(5, Math.min(12, terrainCanvas.width / 120));
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "#c99a4a";
+        ctx.fill();
+        ctx.lineWidth = Math.max(2, terrainCanvas.width / 700);
+        ctx.strokeStyle = "#ffffff";
+        ctx.stroke();
+        ctx.font = `${Math.max(16, terrainCanvas.width / 60)}px monospace`;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(String(index + 1), point.x + radius + 5, point.y - radius - 3);
+    });
+
+    if (terrainState.points.length === 2) {
+        const [a, b] = terrainState.points;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.lineWidth = Math.max(2, terrainCanvas.width / 600);
+        ctx.strokeStyle = "#c99a4a";
+        ctx.stroke();
+    }
+}
+
+function terrainPixelDistance() {
+    if (terrainState.points.length !== 2) return null;
+    const [a, b] = terrainState.points;
+    const canvasDistance = Math.hypot(b.x - a.x, b.y - a.y);
+    return canvasDistance / terrainState.canvasScale;
+}
+
+function loadTerrainImage() {
+    if (!terrainCanvas) return;
+    const file = terrainFileForSource();
+    const preview = terrainPreviewForSource();
+
+    if (!file || !preview?.src) {
+        showToast(`Load Observation ${terrainSource?.value || "A"} first.`);
+        return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+        const maxDimension = 1400;
+        const longest = Math.max(image.naturalWidth, image.naturalHeight);
+        const scale = Math.min(1, maxDimension / longest);
+        terrainCanvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        terrainCanvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        terrainState.image = image;
+        terrainState.source = terrainSource?.value || "A";
+        terrainState.points = [];
+        terrainState.canvasScale = scale;
+        if (terrainEmpty) terrainEmpty.style.display = "none";
+        if (terrainPointStatus) terrainPointStatus.textContent = "CLICK POINT 1";
+        resetTerrainResults();
+        syncTerrainSunAngle();
+        setTerrainInstruction();
+        drawTerrainCanvas();
+        showToast(`Observation ${terrainState.source} loaded for terrain measurement.`);
+    };
+    image.src = preview.src;
+}
+
+function clearTerrainPoints() {
+    terrainState.points = [];
+    if (terrainPointStatus) {
+        terrainPointStatus.textContent = terrainState.image ? "CLICK POINT 1" : "SELECT AN IMAGE";
+    }
+    resetTerrainResults();
+    drawTerrainCanvas();
+}
+
+async function calculateTerrainMeasurement() {
+    if (terrainState.points.length !== 2) {
+        showToast("Select exactly two points on the terrain image first.");
+        return;
+    }
+
+    const pixelDistance = terrainPixelDistance();
+    const gsd = Number(terrainGsd?.value);
+    const measurementType = terrainMeasurementType?.value || "crater_depth";
+
+    if (!Number.isFinite(gsd) || gsd <= 0) {
+        showToast("Enter the real ground resolution in metres per pixel.");
+        return;
+    }
+
+    const form = new FormData();
+    form.append("measurement_type", measurementType);
+    form.append("pixel_distance", String(pixelDistance));
+    form.append("ground_resolution", String(gsd));
+
+    if (measurementType !== "crater_diameter") {
+        const incidence = Number(terrainSunIncidence?.value);
+        if (!Number.isFinite(incidence) || incidence <= 0 || incidence >= 90) {
+            showToast("Enter a Sun incidence angle between 0 and 90 degrees.");
+            return;
+        }
+        form.append("sun_incidence", String(incidence));
+    }
+
+    if (terrainCalculateBtn) {
+        terrainCalculateBtn.disabled = true;
+        terrainCalculateBtn.style.opacity = ".55";
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/terrain/measure`, {
+            method: "POST",
+            body: form
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Terrain measurement failed.");
+
+        setText("terrainPixelDistance", `${Number(data.pixel_distance).toFixed(1)} px`);
+        setText("terrainGroundDistance", formatTerrainDistance(data.ground_distance_m));
+        setText("terrainResultName", data.result_label.toUpperCase());
+        setText("terrainResultValue", formatTerrainDistance(data.result_m));
+        setText("terrainResultMethod", data.method.toUpperCase());
+        setText(
+            "terrainSolarElevation",
+            data.solar_elevation == null ? "N/A" : `${Number(data.solar_elevation).toFixed(1)}°`
+        );
+        setText("terrainWarning", data.warning);
+        showToast("Terrain measurement calculated.");
+    } catch (error) {
+        console.error(error);
+        showToast(error.message || "Terrain measurement failed.");
+    } finally {
+        if (terrainCalculateBtn) {
+            terrainCalculateBtn.disabled = false;
+            terrainCalculateBtn.style.opacity = "1";
+        }
+    }
+}
+
+function formatTerrainDistance(value) {
+    const metres = Number(value);
+    if (!Number.isFinite(metres)) return "—";
+    if (metres >= 1000) return `${(metres / 1000).toFixed(3)} km`;
+    if (metres >= 10) return `${metres.toFixed(1)} m`;
+    return `${metres.toFixed(3)} m`;
+}
+
+if (terrainCanvas) {
+    terrainCanvas.addEventListener("click", event => {
+        if (!terrainState.image) {
+            showToast("Load an observation into the terrain viewer first.");
+            return;
+        }
+
+        const rect = terrainCanvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) * terrainCanvas.width / rect.width;
+        const y = (event.clientY - rect.top) * terrainCanvas.height / rect.height;
+
+        if (terrainState.points.length >= 2) terrainState.points = [];
+        terrainState.points.push({ x, y });
+
+        if (terrainState.points.length === 1) {
+            if (terrainPointStatus) terrainPointStatus.textContent = "CLICK POINT 2";
+        } else {
+            const distance = terrainPixelDistance();
+            if (terrainPointStatus) terrainPointStatus.textContent = `${distance.toFixed(1)} PX SELECTED`;
+            setText("terrainPixelDistance", `${distance.toFixed(1)} px`);
+        }
+
+        drawTerrainCanvas();
+    });
+}
+
+if (terrainLoadBtn) terrainLoadBtn.addEventListener("click", loadTerrainImage);
+if (terrainClearBtn) terrainClearBtn.addEventListener("click", clearTerrainPoints);
+if (terrainCalculateBtn) terrainCalculateBtn.addEventListener("click", calculateTerrainMeasurement);
+
+if (terrainSource) {
+    terrainSource.addEventListener("change", () => {
+        clearTerrainPoints();
+        syncTerrainSunAngle();
+    });
+}
+
+if (terrainMeasurementType) {
+    terrainMeasurementType.addEventListener("change", () => {
+        clearTerrainPoints();
+        syncTerrainSunAngle();
+        setTerrainInstruction();
+    });
+}
+
+setTerrainInstruction();
+syncTerrainSunAngle();
 
 
 let detectionPoints = [];

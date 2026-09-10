@@ -93,6 +93,10 @@
                 RESULTS
             </a>
 
+            <a href="#terrain" class="nav-link">
+                TERRAIN
+            </a>
+
         </nav>
 
 
@@ -1404,59 +1408,150 @@
 
         </section>
 
-
-
-        
-
-        <section class="section benchmark-section">
+        <section class="section terrain-section" id="terrain">
 
             <div class="section-heading">
 
                 <div>
-
                     <span class="section-index">
                         06
                     </span>
 
                     <h2>
-                        Benchmark snapshot
+                        Lunar terrain relief
                     </h2>
-
                 </div>
 
-
                 <p>
-                    Live metrics from the current backend analysis run.
+                    Measure crater diameter and estimate crater depth or hill height from image scale and shadow geometry.
                 </p>
 
             </div>
 
+            <div class="terrain-layout">
 
-            <div class="benchmark-table">
+                <div class="terrain-viewer">
 
-                <div class="benchmark-row benchmark-header">
-                    <span>METHOD</span>
-                    <span>FEATURES</span>
-                    <span>CONFIDENCE</span>
-                    <span>RMSE</span>
-                    <span>TIME</span>
+                    <div class="terrain-viewer-top">
+                        <span>TERRAIN MEASUREMENT VIEW</span>
+                        <span id="terrainPointStatus">SELECT AN IMAGE</span>
+                    </div>
+
+                    <div class="terrain-canvas-wrap">
+                        <canvas id="terrainCanvas"></canvas>
+                        <div class="terrain-empty" id="terrainEmpty">
+                            LOAD OBSERVATION A OR B TO START
+                        </div>
+                    </div>
+
+                    <div class="terrain-instruction" id="terrainInstruction">
+                        Select an observation, load it, then click two points on the image.
+                    </div>
+
                 </div>
 
-                <div class="benchmark-row">
-                    <span id="benchmarkMethod">—</span>
-                    <span id="benchmarkFeatures">—</span>
-                    <span id="benchmarkConfidence">—</span>
-                    <span id="benchmarkRMSE">—</span>
-                    <span id="benchmarkTime">—</span>
+                <div class="terrain-controls">
+
+                    <div class="terrain-control">
+                        <label>IMAGE SOURCE</label>
+                        <select id="terrainSource">
+                            <option value="A" selected>OBSERVATION A</option>
+                            <option value="B">OBSERVATION B</option>
+                        </select>
+                    </div>
+
+                    <div class="terrain-control">
+                        <label>MEASUREMENT</label>
+                        <select id="terrainMeasurementType">
+                            <option value="crater_diameter">CRATER DIAMETER</option>
+                            <option value="crater_depth" selected>CRATER DEPTH</option>
+                            <option value="hill_height">HILL / RIDGE HEIGHT</option>
+                        </select>
+                    </div>
+
+                    <div class="terrain-control">
+                        <label>GROUND RESOLUTION · METRES / PIXEL</label>
+                        <input
+                            type="number"
+                            id="terrainGsd"
+                            min="0.0001"
+                            step="0.0001"
+                            placeholder="EXAMPLE 0.25"
+                        >
+                    </div>
+
+                    <div class="terrain-control">
+                        <label>SUN INCIDENCE · DEGREES</label>
+                        <input
+                            type="number"
+                            id="terrainSunIncidence"
+                            min="0.1"
+                            max="89.9"
+                            step="0.1"
+                            placeholder="REQUIRED FOR DEPTH / HEIGHT"
+                        >
+                    </div>
+
+                    <div class="terrain-button-row">
+                        <button id="terrainLoadBtn" class="primary-button">
+                            <span>LOAD IMAGE</span>
+                            <span class="button-arrow">→</span>
+                        </button>
+
+                        <button id="terrainCalculateBtn" class="secondary-button">
+                            CALCULATE
+                        </button>
+
+                        <button id="terrainClearBtn" class="secondary-button">
+                            CLEAR POINTS
+                        </button>
+                    </div>
+
+                    <div class="terrain-help">
+                        <span>CRATER DIAMETER</span>
+                        <p>Click opposite crater-rim points.</p>
+
+                        <span>CRATER DEPTH / HILL HEIGHT</span>
+                        <p>Click the two endpoints of the visible shadow in the shadow direction.</p>
+                    </div>
+
                 </div>
 
             </div>
 
+            <div class="terrain-results">
+
+                <div class="terrain-result-card">
+                    <span>PIXEL DISTANCE</span>
+                    <strong id="terrainPixelDistance">—</strong>
+                    <small>IMAGE MEASUREMENT</small>
+                </div>
+
+                <div class="terrain-result-card">
+                    <span>GROUND DISTANCE</span>
+                    <strong id="terrainGroundDistance">—</strong>
+                    <small>SCALE CONVERTED</small>
+                </div>
+
+                <div class="terrain-result-card terrain-result-primary">
+                    <span id="terrainResultName">ESTIMATED RELIEF</span>
+                    <strong id="terrainResultValue">—</strong>
+                    <small id="terrainResultMethod">WAITING FOR MEASUREMENT</small>
+                </div>
+
+                <div class="terrain-result-card">
+                    <span>SOLAR ELEVATION</span>
+                    <strong id="terrainSolarElevation">—</strong>
+                    <small>90° − INCIDENCE</small>
+                </div>
+
+            </div>
+
+            <div class="terrain-warning" id="terrainWarning">
+                Depth and height are estimates. Use the real image ground resolution and Sun incidence angle from mission metadata for meaningful values.
+            </div>
+
         </section>
-
-
-
-        
 
         <section class="final-section">
 

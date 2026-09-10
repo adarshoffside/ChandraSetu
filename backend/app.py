@@ -6,7 +6,7 @@ import time
 import cv2
 import numpy as np
 
-app = FastAPI(title="ChandraSetu Backend", version="2.0")
+app = FastAPI(title="ChandraSetu Backend", version="2.1")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,7 +24,7 @@ def home():
     return {
         "status": "online",
         "message": "ChandraSetu backend is working",
-        "version": "2.0"
+        "version": "2.1"
     }
 
 
@@ -433,4 +433,71 @@ async def analyse(
             "registered": encode_image(registered_b),
             "overlay": encode_image(overlay)
         }
+    }
+
+
+@app.post("/api/terrain/measure")
+def terrain_measure(
+    measurement_type: str = Form(...),
+    pixel_distance: float = Form(...),
+    ground_resolution: float = Form(...),
+    sun_incidence: float | None = Form(None)
+):
+    allowed = {"crater_diameter", "crater_depth", "hill_height"}
+
+    if measurement_type not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid terrain measurement type.")
+
+    if pixel_distance <= 0:
+        raise HTTPException(status_code=400, detail="Pixel distance must be greater than zero.")
+
+    if ground_resolution <= 0:
+        raise HTTPException(status_code=400, detail="Ground resolution must be greater than zero.")
+
+    ground_distance = pixel_distance * ground_resolution
+
+    if measurement_type == "crater_diameter":
+        return {
+            "status": "success",
+            "measurement_type": measurement_type,
+            "pixel_distance": round(pixel_distance, 3),
+            "ground_resolution": round(ground_resolution, 6),
+            "ground_distance_m": round(ground_distance, 3),
+            "result_m": round(ground_distance, 3),
+            "result_label": "Estimated crater diameter",
+            "method": "Pixel distance × ground resolution",
+            "warning": "Diameter accuracy depends on the ground resolution and where the two rim points are selected."
+        }
+
+    if sun_incidence is None:
+        raise HTTPException(status_code=400, detail="Sun incidence angle is required for depth or height estimation.")
+
+    if not 0 < sun_incidence < 90:
+        raise HTTPException(status_code=400, detail="Sun incidence angle must be between 0 and 90 degrees for shadow-based estimation.")
+
+    solar_elevation = 90.0 - sun_incidence
+    relief = ground_distance * math.tan(math.radians(solar_elevation))
+
+    if measurement_type == "crater_depth":
+        result_label = "Estimated crater depth"
+    else:
+        result_label = "Estimated hill height"
+
+    warning = "Shadow-based estimate. It assumes locally level terrain, a correct ground resolution, a correct Sun incidence angle, and that the selected line follows the shadow direction."
+
+    if sun_incidence < 10 or sun_incidence > 85:
+        warning += " The selected Sun geometry is extreme, so the estimate may be unstable."
+
+    return {
+        "status": "success",
+        "measurement_type": measurement_type,
+        "pixel_distance": round(pixel_distance, 3),
+        "ground_resolution": round(ground_resolution, 6),
+        "ground_distance_m": round(ground_distance, 3),
+        "sun_incidence": round(sun_incidence, 3),
+        "solar_elevation": round(solar_elevation, 3),
+        "result_m": round(relief, 3),
+        "result_label": result_label,
+        "method": "Shadow length × tan(solar elevation)",
+        "warning": warning
     }

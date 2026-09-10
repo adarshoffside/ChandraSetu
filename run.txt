@@ -1,0 +1,6 @@
+
+Backend:
+1. Open terminal in backend folder.
+2. Run: py -m pip install -r requirements.txt
+3. Run: py -m uvicorn app:app --reload
+4. Keep the terminal open.
