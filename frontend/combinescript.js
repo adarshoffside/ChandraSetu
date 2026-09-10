@@ -1,6 +1,4 @@
-/* =========================================================
-   CHANDRASETU — REAL BACKEND CONNECTED FRONTEND
-========================================================= */
+
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -33,6 +31,9 @@ const analysisStatus = $("analysisStatus");
 const sensorSelect = $("sensorSelect");
 const illuminationSelect = $("illuminationSelect");
 const featureSelect = $("featureSelect");
+const scaleModeSelect = $("scaleModeSelect");
+const sunIncidenceA = $("sunIncidenceA");
+const sunIncidenceB = $("sunIncidenceB");
 const opticalCanvas = $("opticalCanvas");
 const systemStatus = $("systemStatus");
 const systemStatusText = $("systemStatusText");
@@ -54,7 +55,7 @@ function showToast(message) {
     setTimeout(() => toast.classList.remove("show"), 2600);
 }
 
-/* ------------------------- Backend health ------------------------- */
+
 async function checkBackend() {
     try {
         const response = await fetch(`${API_BASE}/`, { cache: "no-store" });
@@ -76,7 +77,7 @@ async function checkBackend() {
     }
 }
 
-/* ------------------------- Cursor ------------------------- */
+
 const cursor = document.querySelector(".cursor-reticle");
 document.addEventListener("mousemove", event => {
     if (!cursor) return;
@@ -89,7 +90,7 @@ document.querySelectorAll("a, button, select, input, .image-upload").forEach(ele
     element.addEventListener("mouseleave", () => document.body.classList.remove("cursor-active"));
 });
 
-/* ------------------------- Image upload ------------------------- */
+
 function handleImage(file, preview, filename, box, which) {
     if (!file || !file.type.startsWith("image/")) {
         showToast("Please select a valid image.");
@@ -142,6 +143,22 @@ if (thresholdInput) {
     });
 }
 
+
+if (sunIncidenceA) {
+    sunIncidenceA.addEventListener("input", () => {
+        if (sunIncidenceA.value !== "") setText("incidenceValue", `${Number(sunIncidenceA.value).toFixed(1)}°`);
+    });
+}
+
+if (sunIncidenceB) {
+    sunIncidenceB.addEventListener("input", () => {
+        if (sunIncidenceA?.value !== "" && sunIncidenceB.value !== "") {
+            const difference = Math.abs(Number(sunIncidenceA.value) - Number(sunIncidenceB.value));
+            setText("azimuthValue", `Δ ${difference.toFixed(1)}°`);
+        }
+    });
+}
+
 [sensorSelect, illuminationSelect, featureSelect].forEach(select => {
     if (!select) return;
     select.addEventListener("change", () => {
@@ -149,7 +166,7 @@ if (thresholdInput) {
     });
 });
 
-/* ------------------------- Pipeline progress ------------------------- */
+
 const pipelineSteps = document.querySelectorAll(".pipeline-step");
 
 function updatePipeline(index) {
@@ -180,7 +197,7 @@ function startProgressAnimation() {
     }, 700);
 }
 
-/* ------------------------- Result rendering ------------------------- */
+
 function setResultImage(id, src) {
     const img = $(id);
     if (!img) return;
@@ -208,7 +225,25 @@ function renderResults(data) {
 
     setText("interpretationTitle", data.interpretation_title);
     setText("interpretationText", data.interpretation_text);
-    setText("researchNote", `Inlier ratio: ${data.inlier_ratio.toFixed(1)}% · Spatial coverage: ${data.coverage.toFixed(1)}% · ${data.normalization_label}`);
+    const metaA = data.metadata?.image_a;
+    const metaB = data.metadata?.image_b;
+    let resultInfo =
+        `Inlier ratio: ${Number(data.inlier_ratio).toFixed(1)}%` +
+        ` · Coverage: ${Number(data.coverage).toFixed(1)}%` +
+        ` · Transform: ${data.transformation}` +
+        ` · Selected scale: ${data.selected_scale}x`;
+
+    if (metaA && metaB) {
+        resultInfo +=
+            ` · A: ${metaA.original_width}×${metaA.original_height}` +
+            ` · B: ${metaB.original_width}×${metaB.original_height}`;
+    }
+
+    if (data.sun_angles?.difference != null) {
+        resultInfo += ` · Sun-angle difference: ${data.sun_angles.difference}°`;
+    }
+
+    setText("researchNote", resultInfo);
 
     setResultImage("matchVisualization", data.images.matches);
     setResultImage("normalizedAResult", data.images.normalized_a);
@@ -216,7 +251,7 @@ function renderResults(data) {
     setResultImage("registeredResult", data.images.overlay);
 }
 
-/* ------------------------- REAL backend analysis ------------------------- */
+
 async function runAnalysis() {
     if (state.running) return;
 
@@ -243,6 +278,15 @@ async function runAnalysis() {
         form.append("illumination_model", illuminationSelect?.value || "clahe");
         form.append("feature_engine", featureSelect?.value || "sift");
         form.append("ratio_threshold", String(state.threshold));
+        form.append("scale_mode", scaleModeSelect?.value || "auto");
+
+        if (sunIncidenceA?.value !== "") {
+            form.append("sun_incidence_a", sunIncidenceA.value);
+        }
+
+        if (sunIncidenceB?.value !== "") {
+            form.append("sun_incidence_b", sunIncidenceB.value);
+        }
 
         const response = await fetch(`${API_BASE}/api/analyse`, {
             method: "POST",
@@ -281,7 +325,7 @@ async function runAnalysis() {
     }
 }
 
-/* ------------------------- Reset ------------------------- */
+
 function resetAnalysis() {
     state.imageA = null;
     state.imageB = null;
@@ -295,6 +339,9 @@ function resetAnalysis() {
     if (imageBoxB) imageBoxB.classList.remove("has-image");
     if (fileNameA) fileNameA.textContent = "NO IMAGE SELECTED";
     if (fileNameB) fileNameB.textContent = "NO IMAGE SELECTED";
+    if (scaleModeSelect) scaleModeSelect.value = "auto";
+    if (sunIncidenceA) sunIncidenceA.value = "";
+    if (sunIncidenceB) sunIncidenceB.value = "";
 
     ["featureCount", "matchCount", "confidence", "registrationError", "targetConfidence",
      "benchmarkMethod", "benchmarkFeatures", "benchmarkConfidence", "benchmarkRMSE", "benchmarkTime"]
@@ -322,7 +369,7 @@ document.addEventListener("keydown", event => {
     if (event.ctrlKey && event.key === "Enter") runAnalysis();
 });
 
-/* ------------------------- Decorative optical display ------------------------- */
+
 let detectionPoints = [];
 
 function resizeOpticalCanvas() {
@@ -393,7 +440,7 @@ function drawOpticalSystem() {
     requestAnimationFrame(drawOpticalSystem);
 }
 
-/* ------------------------- Navigation/reveal ------------------------- */
+
 const sections = document.querySelectorAll("section[id]");
 const navLinks = document.querySelectorAll(".nav-link");
 

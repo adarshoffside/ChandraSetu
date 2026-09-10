@@ -1,0 +1,5 @@
+fastapi>=0.116
+uvicorn[standard]>=0.35
+python-multipart>=0.0.20
+opencv-python>=4.10
+numpy>=2.0

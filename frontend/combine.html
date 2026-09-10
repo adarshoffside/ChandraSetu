@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ChandraSetu — Lunar Image Correspondence Lab</title>
+
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    
     <link rel="stylesheet" href="combinestyle.css">
 
 </head>
@@ -15,7 +19,7 @@
 
 <body>
 
-
+    
 
     <div class="cursor-reticle">
 
@@ -32,7 +36,7 @@
 
 
 
-
+    
 
     <div class="space-background">
 
@@ -44,6 +48,9 @@
 
     </div>
 
+
+
+    
 
     <header class="topbar">
 
@@ -98,10 +105,12 @@
 
 
 
-
+    
 
     <main>
 
+
+        
 
         <section class="hero" id="overview">
 
@@ -191,6 +200,8 @@
                 </div>
 
 
+                
+
                 <div id="moon3d">
 
                     <div class="moon-loading">
@@ -199,6 +210,8 @@
 
                 </div>
 
+
+                
 
                 <div class="moon-target target-one">
                     <span></span>
@@ -311,6 +324,7 @@
 
 
 
+        
 
         <section class="section workspace-section" id="workspace">
 
@@ -338,10 +352,12 @@
 
 
 
+            
 
             <div class="observation-grid">
 
 
+                
 
                 <div class="observation-card">
 
@@ -418,7 +434,7 @@
 
 
 
-                <!-- IMAGE B -->
+                
 
                 <div class="observation-card">
 
@@ -497,7 +513,7 @@
 
 
 
-            <!-- CONFIGURATION -->
+            
 
             <div class="configuration-panel">
 
@@ -508,7 +524,7 @@
                     </span>
 
                     <span>
-                        CONFIG / 02
+                        CONFIG / 07
                     </span>
 
                 </div>
@@ -617,13 +633,70 @@
 
                     </div>
 
+
+                    <div class="config-item">
+
+                        <label>
+                            SCALE NORMALISATION
+                        </label>
+
+                        <select id="scaleModeSelect">
+
+                            <option value="auto" selected>
+                                AUTOMATIC MULTI-SCALE
+                            </option>
+
+                            <option value="off">
+                                DISABLED
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="config-item">
+
+                        <label>
+                            IMAGE A SUN INCIDENCE
+                        </label>
+
+                        <input
+                            type="number"
+                            id="sunIncidenceA"
+                            min="0"
+                            max="180"
+                            step="0.1"
+                            placeholder="OPTIONAL · DEG"
+                        >
+
+                    </div>
+
+
+                    <div class="config-item">
+
+                        <label>
+                            IMAGE B SUN INCIDENCE
+                        </label>
+
+                        <input
+                            type="number"
+                            id="sunIncidenceB"
+                            min="0"
+                            max="180"
+                            step="0.1"
+                            placeholder="OPTIONAL · DEG"
+                        >
+
+                    </div>
+
                 </div>
 
             </div>
 
 
 
-            <!-- ANALYSIS CONTROLS -->
+            
 
             <div class="analysis-controls">
 
@@ -665,7 +738,7 @@
 
 
 
-            <!-- PROGRESS -->
+            
 
             <div class="analysis-progress">
 
@@ -697,9 +770,7 @@
 
 
 
-        <!-- =====================================================
-             OPTICAL DETECTION SYSTEM
-        ====================================================== -->
+        
 
         <section class="section detection-section">
 
@@ -730,7 +801,7 @@
             <div class="detection-layout">
 
 
-                <!-- RADAR -->
+                
 
                 <div class="detection-screen">
 
@@ -814,7 +885,7 @@
 
 
 
-                <!-- INFORMATION -->
+                
 
                 <div class="detection-info">
 
@@ -890,9 +961,7 @@
 
 
 
-        <!-- =====================================================
-             METHOD
-        ====================================================== -->
+        
 
         <section
             class="section method-section"
@@ -922,7 +991,7 @@
 
 
 
-            <!-- PIPELINE -->
+            
 
             <div class="pipeline">
 
@@ -1027,7 +1096,7 @@
 
 
 
-            <!-- METHOD CARDS -->
+            
 
             <div class="method-grid">
 
@@ -1117,9 +1186,7 @@
 
 
 
-        <!-- =====================================================
-             RESULTS
-        ====================================================== -->
+        
 
         <section
             class="section results-section"
@@ -1149,7 +1216,7 @@
 
 
 
-            <!-- METRICS -->
+            
 
             <div class="metrics-grid">
 
@@ -1225,7 +1292,7 @@
 
 
 
-            <!-- CORRESPONDENCE MAP -->
+            
 
             <div class="correspondence-board">
 
@@ -1265,7 +1332,7 @@
 
 
 
-            <!-- REAL IMAGE OUTPUTS -->
+            
 
             <div class="result-gallery">
 
@@ -1296,7 +1363,7 @@
             </div>
 
 
-            <!-- INTERPRETATION -->
+            
 
             <div class="interpretation-grid">
 
@@ -1339,9 +1406,7 @@
 
 
 
-        <!-- =====================================================
-             BENCHMARK
-        ====================================================== -->
+        
 
         <section class="section benchmark-section">
 
@@ -1391,9 +1456,7 @@
 
 
 
-        <!-- =====================================================
-             FINAL STATEMENT
-        ====================================================== -->
+        
 
         <section class="final-section">
 
@@ -1430,9 +1493,7 @@
 
 
 
-    <!-- =====================================================
-         TOAST
-    ====================================================== -->
+    
 
     <div
         class="toast"
@@ -1448,18 +1509,21 @@
     </div>
 
 
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+
+    
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
     }
-}
-</script>
+    </script>
 
     <script type="module" src="three-scene.js"></script>
+    <script src="combinescript.js"></script>
 
-<script src="combinescript.js"></script>
+</body>
 
-    </body>
 </html>
