@@ -5,6 +5,8 @@ const API_BASE = "http://127.0.0.1:8000";
 const state = {
     imageA: null,
     imageB: null,
+    metadataA: null,
+    metadataB: null,
     running: false,
     threshold: 0.75,
     sweepAngle: 0
@@ -34,6 +36,10 @@ const featureSelect = $("featureSelect");
 const scaleModeSelect = $("scaleModeSelect");
 const sunIncidenceA = $("sunIncidenceA");
 const sunIncidenceB = $("sunIncidenceB");
+const metadataFileA = $("metadataFileA");
+const metadataFileB = $("metadataFileB");
+const metadataStatusA = $("metadataStatusA");
+const metadataStatusB = $("metadataStatusB");
 const opticalCanvas = $("opticalCanvas");
 const systemStatus = $("systemStatus");
 const systemStatusText = $("systemStatusText");
@@ -46,6 +52,8 @@ const terrainSource = $("terrainSource");
 const terrainMeasurementType = $("terrainMeasurementType");
 const terrainGsd = $("terrainGsd");
 const terrainSunIncidence = $("terrainSunIncidence");
+const terrainGsdSource = $("terrainGsdSource");
+const terrainSunSource = $("terrainSunSource");
 const terrainLoadBtn = $("terrainLoadBtn");
 const terrainCalculateBtn = $("terrainCalculateBtn");
 const terrainClearBtn = $("terrainClearBtn");
@@ -89,6 +97,101 @@ async function checkBackend() {
     }
 }
 
+function metadataForSource(source) {
+    return source === "B" ? state.metadataB : state.metadataA;
+}
+
+function metadataStatusForSource(source) {
+    return source === "B" ? metadataStatusB : metadataStatusA;
+}
+
+function metadataInputForSource(source) {
+    return source === "B" ? metadataFileB : metadataFileA;
+}
+
+function clearObservationMetadata(source) {
+    if (source === "B") state.metadataB = null;
+    else state.metadataA = null;
+
+    const input = metadataInputForSource(source);
+    const status = metadataStatusForSource(source);
+    if (input) input.value = "";
+    if (status) status.textContent = "OPTIONAL · XML / LBL / TXT / JSON";
+}
+
+function metadataSummary(data) {
+    const parts = [];
+    if (data.ground_resolution_m_per_pixel != null) {
+        parts.push(`${Number(data.ground_resolution_m_per_pixel).toFixed(4)} M/PX`);
+    }
+    if (data.sun_incidence_deg != null) {
+        parts.push(`SUN ${Number(data.sun_incidence_deg).toFixed(2)}°`);
+    }
+    if (data.sun_azimuth_deg != null) {
+        parts.push(`AZ ${Number(data.sun_azimuth_deg).toFixed(2)}°`);
+    }
+    return parts.length ? parts.join(" · ") : "METADATA READ";
+}
+
+function applyMetadataToUi(source, data) {
+    if (source === "B") state.metadataB = data;
+    else state.metadataA = data;
+
+    const sunInput = source === "B" ? sunIncidenceB : sunIncidenceA;
+    if (data.sun_incidence_deg != null && sunInput) {
+        sunInput.value = Number(data.sun_incidence_deg).toFixed(3);
+        sunInput.dispatchEvent(new Event("input"));
+    }
+
+    if ((terrainSource?.value || "A") === source) {
+        syncTerrainSunAngle();
+    }
+}
+
+async function extractMissionMetadata(source, file) {
+    if (!file) return;
+
+    const status = metadataStatusForSource(source);
+    if (status) status.textContent = "READING METADATA...";
+
+    try {
+        const form = new FormData();
+        form.append("metadata_file", file);
+
+        const response = await fetch(`${API_BASE}/api/metadata/extract`, {
+            method: "POST",
+            body: form
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.detail || "Metadata extraction failed.");
+        }
+
+        applyMetadataToUi(source, data);
+        if (status) status.textContent = metadataSummary(data);
+        showToast(`Observation ${source} metadata detected automatically.`);
+    } catch (error) {
+        console.error(error);
+        if (source === "B") state.metadataB = null;
+        else state.metadataA = null;
+        if (status) status.textContent = "NO SUPPORTED FIELDS FOUND";
+        showToast(error.message || "Could not read metadata.");
+    }
+}
+
+if (metadataFileA) {
+    metadataFileA.addEventListener("change", () => {
+        if (metadataFileA.files?.length) extractMissionMetadata("A", metadataFileA.files[0]);
+    });
+}
+
+if (metadataFileB) {
+    metadataFileB.addEventListener("change", () => {
+        if (metadataFileB.files?.length) extractMissionMetadata("B", metadataFileB.files[0]);
+    });
+}
+
 
 const cursor = document.querySelector(".cursor-reticle");
 document.addEventListener("mousemove", event => {
@@ -120,6 +223,7 @@ function handleImage(file, preview, filename, box, which) {
         if (box) box.classList.add("has-image");
         if (which === "A") state.imageA = file;
         if (which === "B") state.imageB = file;
+        clearObservationMetadata(which);
         showToast(`Observation ${which} loaded.`);
     };
     reader.readAsDataURL(file);
@@ -341,6 +445,8 @@ async function runAnalysis() {
 function resetAnalysis() {
     state.imageA = null;
     state.imageB = null;
+    state.metadataA = null;
+    state.metadataB = null;
     state.running = false;
 
     if (imageA) imageA.value = "";
@@ -354,6 +460,10 @@ function resetAnalysis() {
     if (scaleModeSelect) scaleModeSelect.value = "auto";
     if (sunIncidenceA) sunIncidenceA.value = "";
     if (sunIncidenceB) sunIncidenceB.value = "";
+    if (metadataFileA) metadataFileA.value = "";
+    if (metadataFileB) metadataFileB.value = "";
+    if (metadataStatusA) metadataStatusA.textContent = "OPTIONAL · XML / LBL / TXT / JSON";
+    if (metadataStatusB) metadataStatusB.textContent = "OPTIONAL · XML / LBL / TXT / JSON";
 
     ["featureCount", "matchCount", "confidence", "registrationError", "targetConfidence",
      "benchmarkMethod", "benchmarkFeatures", "benchmarkConfidence", "benchmarkRMSE", "benchmarkTime"]
@@ -383,6 +493,8 @@ function resetAnalysis() {
     if (terrainPointStatus) terrainPointStatus.textContent = "SELECT AN IMAGE";
     if (terrainGsd) terrainGsd.value = "";
     if (terrainSunIncidence) terrainSunIncidence.value = "";
+    if (terrainGsdSource) terrainGsdSource.textContent = "MANUAL OR PRODUCT METADATA";
+    if (terrainSunSource) terrainSunSource.textContent = "MANUAL OR PRODUCT METADATA";
     if (terrainSource) terrainSource.value = "A";
     if (terrainMeasurementType) terrainMeasurementType.value = "crater_depth";
     resetTerrainResults();
@@ -428,15 +540,43 @@ function setTerrainInstruction() {
 
 function syncTerrainSunAngle() {
     if (!terrainSunIncidence || !terrainMeasurementType) return;
+
+    const source = terrainSource?.value === "B" ? "B" : "A";
+    const metadata = metadataForSource(source);
     const diameterMode = terrainMeasurementType.value === "crater_diameter";
+
+    if (metadata?.ground_resolution_m_per_pixel != null && terrainGsd) {
+        terrainGsd.value = Number(metadata.ground_resolution_m_per_pixel).toFixed(6);
+        if (terrainGsdSource) {
+            terrainGsdSource.textContent = `AUTO · ${metadata.ground_resolution_source || metadata.filename || "PRODUCT METADATA"}`.toUpperCase();
+        }
+    } else if (terrainGsdSource) {
+        terrainGsdSource.textContent = "MANUAL · METADATA GSD NOT AVAILABLE";
+    }
+
     terrainSunIncidence.disabled = diameterMode;
+
     if (diameterMode) {
         terrainSunIncidence.value = "";
+        if (terrainSunSource) terrainSunSource.textContent = "NOT REQUIRED FOR DIAMETER";
         return;
     }
-    const sourceValue = terrainSource?.value === "B" ? sunIncidenceB?.value : sunIncidenceA?.value;
-    if (sourceValue !== undefined && sourceValue !== "") {
+
+    if (metadata?.sun_incidence_deg != null && Number(metadata.sun_incidence_deg) > 0 && Number(metadata.sun_incidence_deg) < 90) {
+        terrainSunIncidence.value = Number(metadata.sun_incidence_deg).toFixed(3);
+        if (terrainSunSource) {
+            terrainSunSource.textContent = `AUTO · ${metadata.sun_incidence_source || metadata.filename || "PRODUCT METADATA"}`.toUpperCase();
+        }
+        return;
+    }
+
+    const sourceValue = source === "B" ? sunIncidenceB?.value : sunIncidenceA?.value;
+    if (sourceValue !== undefined && sourceValue !== "" && Number(sourceValue) > 0 && Number(sourceValue) < 90) {
         terrainSunIncidence.value = sourceValue;
+        if (terrainSunSource) terrainSunSource.textContent = "FROM OBSERVATION SUN INCIDENCE";
+    } else {
+        terrainSunIncidence.value = "";
+        if (terrainSunSource) terrainSunSource.textContent = "MANUAL · METADATA SUN ANGLE NOT AVAILABLE";
     }
 }
 
@@ -447,7 +587,7 @@ function resetTerrainResults() {
     setText("terrainSolarElevation", "—");
     setText("terrainResultName", "ESTIMATED RELIEF");
     setText("terrainResultMethod", "WAITING FOR MEASUREMENT");
-    setText("terrainWarning", "Depth and height are estimates. Use the real image ground resolution and Sun incidence angle from mission metadata for meaningful values.");
+    setText("terrainWarning", "Depth and height are estimates. Upload the matching mission metadata file to auto-fill ground resolution and Sun incidence whenever those fields are available.");
 }
 
 function drawTerrainCanvas() {

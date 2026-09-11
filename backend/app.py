@@ -1,12 +1,15 @@
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import base64
+import json
 import math
+import re
 import time
+import xml.etree.ElementTree as ET
 import cv2
 import numpy as np
 
-app = FastAPI(title="ChandraSetu Backend", version="2.1")
+app = FastAPI(title="ChandraSetu Backend", version="2.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,7 +27,7 @@ def home():
     return {
         "status": "online",
         "message": "ChandraSetu backend is working",
-        "version": "2.1"
+        "version": "2.2"
     }
 
 
@@ -191,6 +194,260 @@ def scale_image(image, scale):
     height = max(32, int(image.shape[0] * scale))
     interpolation = cv2.INTER_CUBIC if scale > 1 else cv2.INTER_AREA
     return cv2.resize(image, (width, height), interpolation=interpolation)
+
+
+def normalize_field_name(value):
+    value = value.split("}")[-1]
+    value = re.sub(r"[^a-zA-Z0-9]+", "_", value).strip("_").lower()
+    return value
+
+
+def first_number(value):
+    if value is None:
+        return None
+    match = re.search(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?", str(value))
+    if not match:
+        return None
+    try:
+        return float(match.group(0))
+    except ValueError:
+        return None
+
+
+def resolution_to_metres(value, unit, field_name):
+    unit_text = normalize_field_name(unit or "")
+    name = normalize_field_name(field_name)
+    if value is None or value <= 0:
+        return None
+    if "pixel_per_degree" in unit_text or "pixels_per_degree" in unit_text:
+        return None
+    if "degree_per_pixel" in unit_text or "degrees_per_pixel" in unit_text:
+        return None
+    if "kilomet" in unit_text or unit_text.startswith("km") or "km_per_pixel" in unit_text or "km_pixel" in unit_text:
+        return value * 1000.0
+    if "centimet" in unit_text or unit_text.startswith("cm"):
+        return value * 0.01
+    if "millimet" in unit_text or unit_text.startswith("mm"):
+        return value * 0.001
+    if "metre" in unit_text or "meter" in unit_text or unit_text.startswith("m_per") or unit_text.startswith("m_pixel") or unit_text == "m":
+        return value
+    strong = any(token in name for token in [
+        "ground_sample_distance",
+        "ground_sampling_distance",
+        "ground_resolution",
+        "ground_pixel_size"
+    ])
+    if strong and not unit_text:
+        return value
+    return None
+
+
+def metadata_records_from_xml(text):
+    records = []
+    root = ET.fromstring(text)
+    for element in root.iter():
+        name = normalize_field_name(element.tag)
+        raw = (element.text or "").strip()
+        value = first_number(raw)
+        unit = ""
+        for key, attr_value in element.attrib.items():
+            key_name = normalize_field_name(key)
+            if "unit" in key_name:
+                unit = str(attr_value)
+        if value is not None:
+            records.append({
+                "name": name,
+                "value": value,
+                "unit": unit,
+                "raw": raw
+            })
+    return records
+
+
+def metadata_records_from_text(text):
+    records = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if "=" in stripped:
+            key, raw_value = stripped.split("=", 1)
+        elif ":" in stripped:
+            key, raw_value = stripped.split(":", 1)
+        else:
+            continue
+        name = normalize_field_name(key)
+        value = first_number(raw_value)
+        if value is None:
+            continue
+        unit_match = re.search(r"(?:<|\[|\()\s*([a-zA-Z]+(?:\s*/\s*[a-zA-Z]+)?)\s*(?:>|\]|\))", raw_value)
+        unit = unit_match.group(1) if unit_match else ""
+        records.append({
+            "name": name,
+            "value": value,
+            "unit": unit,
+            "raw": raw_value.strip()
+        })
+    return records
+
+
+def metadata_records_from_json(text):
+    data = json.loads(text)
+    records = []
+
+    def walk(value, key_name=""):
+        if isinstance(value, dict):
+            for key, child in value.items():
+                walk(child, key)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child, key_name)
+        elif isinstance(value, (int, float)):
+            records.append({
+                "name": normalize_field_name(key_name),
+                "value": float(value),
+                "unit": "",
+                "raw": str(value)
+            })
+        elif isinstance(value, str):
+            number = first_number(value)
+            if number is not None:
+                records.append({
+                    "name": normalize_field_name(key_name),
+                    "value": number,
+                    "unit": value,
+                    "raw": value
+                })
+
+    walk(data)
+    return records
+
+
+def choose_metadata_value(records):
+    resolution_candidates = []
+    incidence_candidates = []
+    elevation_candidates = []
+    azimuth_candidates = []
+
+    for record in records:
+        name = record["name"]
+        value = record["value"]
+        unit = record.get("unit", "")
+
+        resolution_score = 0
+        if "ground_sample_distance" in name or "ground_sampling_distance" in name:
+            resolution_score = 120
+        elif "ground_resolution" in name or "ground_pixel_size" in name:
+            resolution_score = 115
+        elif "pixel_resolution" in name or "spatial_resolution" in name:
+            resolution_score = 100
+        elif "pixel_size" in name or "pixel_scale" in name:
+            resolution_score = 85
+        elif "resolution" in name and any(token in name for token in ["ground", "spatial", "pixel"]):
+            resolution_score = 75
+
+        metres = resolution_to_metres(value, unit, name)
+        if resolution_score and metres is not None:
+            resolution_candidates.append((resolution_score, metres, record))
+
+        incidence_score = 0
+        if "solar_incidence_angle" in name or "sun_incidence_angle" in name:
+            incidence_score = 120
+        elif "solar_incidence" in name or "sun_incidence" in name:
+            incidence_score = 115
+        elif "incidence_angle" in name and "emission" not in name:
+            incidence_score = 95
+        elif name == "incidence" or name.endswith("_incidence"):
+            incidence_score = 80
+        if incidence_score and 0 <= value <= 180:
+            incidence_candidates.append((incidence_score, value, record))
+
+        elevation_score = 0
+        if "solar_elevation_angle" in name or "sun_elevation_angle" in name:
+            elevation_score = 120
+        elif "solar_elevation" in name or "sun_elevation" in name:
+            elevation_score = 110
+        if elevation_score and -90 <= value <= 90:
+            elevation_candidates.append((elevation_score, value, record))
+
+        azimuth_score = 0
+        if "solar_azimuth_angle" in name or "sun_azimuth_angle" in name:
+            azimuth_score = 120
+        elif "solar_azimuth" in name or "sun_azimuth" in name:
+            azimuth_score = 110
+        elif "azimuth_angle" in name and "spacecraft" not in name:
+            azimuth_score = 70
+        if azimuth_score and 0 <= value <= 360:
+            azimuth_candidates.append((azimuth_score, value, record))
+
+    resolution = max(resolution_candidates, default=None, key=lambda item: item[0])
+    incidence = max(incidence_candidates, default=None, key=lambda item: item[0])
+    elevation = max(elevation_candidates, default=None, key=lambda item: item[0])
+    azimuth = max(azimuth_candidates, default=None, key=lambda item: item[0])
+
+    incidence_value = incidence[1] if incidence else None
+    incidence_source = incidence[2]["name"] if incidence else None
+
+    if incidence_value is None and elevation is not None:
+        incidence_value = 90.0 - elevation[1]
+        incidence_source = elevation[2]["name"] + " converted to incidence"
+
+    return {
+        "ground_resolution_m_per_pixel": round(resolution[1], 6) if resolution else None,
+        "ground_resolution_source": resolution[2]["name"] if resolution else None,
+        "sun_incidence_deg": round(incidence_value, 6) if incidence_value is not None else None,
+        "sun_incidence_source": incidence_source,
+        "sun_azimuth_deg": round(azimuth[1], 6) if azimuth else None,
+        "sun_azimuth_source": azimuth[2]["name"] if azimuth else None
+    }
+
+
+@app.post("/api/metadata/extract")
+async def extract_metadata(metadata_file: UploadFile = File(...)):
+    raw = await metadata_file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Metadata file is empty.")
+    if len(raw) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Metadata file must be 5 MB or smaller.")
+
+    text = raw.decode("utf-8", errors="ignore")
+    filename = (metadata_file.filename or "metadata").lower()
+    records = []
+    parse_method = "TEXT"
+
+    try:
+        if filename.endswith(".json"):
+            records = metadata_records_from_json(text)
+            parse_method = "JSON"
+        elif filename.endswith(".xml") or text.lstrip().startswith("<"):
+            records = metadata_records_from_xml(text)
+            parse_method = "XML"
+        else:
+            records = metadata_records_from_text(text)
+            parse_method = "TEXT/LBL"
+    except Exception:
+        records = metadata_records_from_text(text)
+        parse_method = "TEXT/LBL FALLBACK"
+
+    detected = choose_metadata_value(records)
+
+    if all(detected[key] is None for key in [
+        "ground_resolution_m_per_pixel",
+        "sun_incidence_deg",
+        "sun_azimuth_deg"
+    ]):
+        raise HTTPException(
+            status_code=422,
+            detail="No supported ground-resolution or Sun-angle fields were found in this metadata file."
+        )
+
+    return {
+        "status": "success",
+        "filename": metadata_file.filename or "metadata",
+        "parse_method": parse_method,
+        "records_scanned": len(records),
+        **detected
+    }
 
 
 @app.post("/api/analyse")
