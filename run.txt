@@ -1,3 +1,0 @@
-Open terminal in backend folder.
-Run: py -m uvicorn app:app --reload
-Keep the terminal open.

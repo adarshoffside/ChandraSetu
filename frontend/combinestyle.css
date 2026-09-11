@@ -508,17 +508,27 @@ body.cursor-active .cursor-dot {
 }
 
 
-.hero h1 {
-    font-size: clamp(50px, 5.4vw, 90px);
-    font-weight: 500;
-    line-height: .95;
-    letter-spacing: -4px;
-}
-
 .hero-content {
     position: relative;
     z-index: 2;
     min-width: 0;
+    max-width: 780px;
+}
+
+.hero h1 {
+    font-size: clamp(68px, 5.3vw, 94px);
+    font-weight: 500;
+    line-height: 0.95;
+    letter-spacing: -5px;
+    margin: 0;
+}
+
+.hero h1 span {
+    display: block;
+    color: var(--white-soft);
+    font-size: 0.9em;
+    letter-spacing: -5px;
+    white-space: nowrap;
 }
 .hero h1 span {
 
