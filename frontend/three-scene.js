@@ -1,252 +1,695 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-const container = document.getElementById("moon3d");
+const moonContainer = document.getElementById("moon3d");
 
-if (container) {
+if (moonContainer) {
+    const width = Math.max(moonContainer.clientWidth, 1);
+    const height = Math.max(moonContainer.clientHeight, 1);
+
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(
         42,
-        container.clientWidth / container.clientHeight,
+        width / height,
         0.1,
         100
     );
-    camera.position.set(0, 0, 6.2);
+
+    camera.position.set(0, 0.15, 5.2);
 
     const renderer = new THREE.WebGLRenderer({
         antialias: true,
         alpha: true
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setClearColor(0x000000, 0);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    container.innerHTML = "";
-    container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
-    scene.add(ambientLight);
-
-    const sunLight = new THREE.DirectionalLight(0xffffff, 3.4);
-    sunLight.position.set(-4, 4, 6);
-    scene.add(sunLight);
-
-    const fillLight = new THREE.DirectionalLight(0x8fa4b0, 0.55);
-    fillLight.position.set(4, -2, 4);
-    scene.add(fillLight);
-
-    const textureLoader = new THREE.TextureLoader();
-    const moonTexture = textureLoader.load(
-        "assets/moon-real.jpg",
-        () => console.log("MOON TEXTURE LOADED"),
-        undefined,
-        error => console.error("MOON TEXTURE ERROR", error)
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, 2)
     );
-    moonTexture.colorSpace = THREE.SRGBColorSpace;
-    moonTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    const moon = new THREE.Mesh(
-        new THREE.SphereGeometry(1.55, 128, 128),
+    renderer.setSize(
+        width,
+        height
+    );
+
+    renderer.outputColorSpace =
+        THREE.SRGBColorSpace;
+
+    renderer.setClearColor(
+        0x000000,
+        0
+    );
+
+    moonContainer.innerHTML = "";
+
+    moonContainer.appendChild(
+        renderer.domElement
+    );
+
+    const ambientLight =
+        new THREE.AmbientLight(
+            0xffffff,
+            0.65
+        );
+
+    scene.add(
+        ambientLight
+    );
+
+    const sunLight =
+        new THREE.DirectionalLight(
+            0xfff4dc,
+            3
+        );
+
+    sunLight.position.set(
+        -4,
+        2.5,
+        5
+    );
+
+    scene.add(
+        sunLight
+    );
+
+    const fillLight =
+        new THREE.DirectionalLight(
+            0x8fa4b0,
+            0.6
+        );
+
+    fillLight.position.set(
+        4,
+        -2,
+        4
+    );
+
+    scene.add(
+        fillLight
+    );
+
+    const moonGeometry =
+        new THREE.SphereGeometry(
+            1.55,
+            128,
+            128
+        );
+
+    const moonMaterial =
         new THREE.MeshStandardMaterial({
-            map: moonTexture,
+            color: 0x9a9a9a,
             roughness: 1,
             metalness: 0
-        })
-    );
-    moon.rotation.y = -0.3;
-    scene.add(moon);
+        });
 
-    const glow = new THREE.Mesh(
-        new THREE.SphereGeometry(1.59, 96, 96),
+    const moon =
+        new THREE.Mesh(
+            moonGeometry,
+            moonMaterial
+        );
+
+    moon.rotation.y = -0.4;
+
+    scene.add(
+        moon
+    );
+
+    const textureLoader =
+        new THREE.TextureLoader();
+
+    textureLoader.load(
+        "assets/moon-real.jpg",
+
+        texture => {
+            texture.colorSpace =
+                THREE.SRGBColorSpace;
+
+            texture.anisotropy =
+                renderer.capabilities
+                    .getMaxAnisotropy();
+
+            moonMaterial.map =
+                texture;
+
+            moonMaterial.color.set(
+                0xffffff
+            );
+
+            moonMaterial.needsUpdate =
+                true;
+
+            console.log(
+                "MOON TEXTURE LOADED"
+            );
+        },
+
+        undefined,
+
+        error => {
+            console.error(
+                "MOON TEXTURE ERROR",
+                error
+            );
+        }
+    );
+
+    const atmosphereGeometry =
+        new THREE.SphereGeometry(
+            1.59,
+            96,
+            96
+        );
+
+    const atmosphereMaterial =
         new THREE.MeshBasicMaterial({
-            color: 0x8b979d,
+            color: 0x8fa1aa,
             transparent: true,
-            opacity: 0.045,
+            opacity: 0.05,
             side: THREE.BackSide
-        })
+        });
+
+    const atmosphere =
+        new THREE.Mesh(
+            atmosphereGeometry,
+            atmosphereMaterial
+        );
+
+    scene.add(
+        atmosphere
     );
-    scene.add(glow);
 
-    const ORBIT_WIDTH = 2.7;
-    const ORBIT_HEIGHT = 2.05;
-    const ORBIT_TILT = THREE.MathUtils.degToRad(-12);
-
-    function createOrbit(width, height, opacity, tilt, z) {
-        const curve = new THREE.EllipseCurve(
+    const orbitCurve =
+        new THREE.EllipseCurve(
             0,
             0,
-            width,
-            height,
+            2.55,
+            1.65,
             0,
             Math.PI * 2,
             false,
             0
         );
 
-        const points = curve.getPoints(260).map(
-            point => new THREE.Vector3(point.x, point.y, z)
+    const orbitPoints =
+        orbitCurve.getPoints(
+            220
         );
 
-        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-        const material = new THREE.LineBasicMaterial({
-            color: 0x68777f,
+    const orbitGeometry =
+        new THREE.BufferGeometry()
+            .setFromPoints(
+                orbitPoints.map(
+                    point =>
+                        new THREE.Vector3(
+                            point.x,
+                            0,
+                            point.y
+                        )
+                )
+            );
+
+    const orbitMaterial =
+        new THREE.LineBasicMaterial({
+            color: 0x718089,
             transparent: true,
-            opacity
+            opacity: 0.28
         });
 
-        const orbit = new THREE.LineLoop(geometry, material);
-        orbit.rotation.z = tilt;
-        scene.add(orbit);
-        return orbit;
-    }
+    const orbit =
+        new THREE.LineLoop(
+            orbitGeometry,
+            orbitMaterial
+        );
 
-    createOrbit(ORBIT_WIDTH, ORBIT_HEIGHT, 0.3, ORBIT_TILT, 0);
-    const secondOrbit = createOrbit(
-        3.0,
-        1.72,
-        0.12,
-        THREE.MathUtils.degToRad(28),
-        -0.2
+    orbit.rotation.x =
+        THREE.MathUtils.degToRad(
+            20
+        );
+
+    orbit.rotation.z =
+        THREE.MathUtils.degToRad(
+            -12
+        );
+
+    scene.add(
+        orbit
     );
 
-    const satellitePivot = new THREE.Group();
-    const satelliteHolder = new THREE.Group();
-    satellitePivot.add(satelliteHolder);
-    scene.add(satellitePivot);
+    const orbit2Geometry =
+        new THREE.BufferGeometry()
+            .setFromPoints(
+                orbitPoints.map(
+                    point =>
+                        new THREE.Vector3(
+                            point.x * 1.12,
+                            0,
+                            point.y * 1.12
+                        )
+                )
+            );
 
-    let satelliteModel = null;
-    const gltfLoader = new GLTFLoader();
+    const orbit2Material =
+        new THREE.LineBasicMaterial({
+            color: 0x59666e,
+            transparent: true,
+            opacity: 0.12
+        });
 
-    gltfLoader.load(
-        "assets/lro.glb",
-        gltf => {
-            const model = gltf.scene;
-            model.updateMatrixWorld(true);
+    const orbit2 =
+        new THREE.LineLoop(
+            orbit2Geometry,
+            orbit2Material
+        );
 
-            const box = new THREE.Box3().setFromObject(model);
-            const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
+    orbit2.rotation.x =
+        THREE.MathUtils.degToRad(
+            20
+        );
 
-            model.position.set(-center.x, -center.y, -center.z);
+    orbit2.rotation.z =
+        THREE.MathUtils.degToRad(
+            25
+        );
 
-            const biggestSide = Math.max(size.x, size.y, size.z);
-            const scale = biggestSide > 0 ? 0.75 / biggestSide : 1;
-            satelliteHolder.scale.setScalar(scale);
-
-            model.traverse(child => {
-                if (child.isMesh) {
-                    child.frustumCulled = false;
-                    if (child.material) {
-                        child.material.side = THREE.DoubleSide;
-                        child.material.needsUpdate = true;
-                    }
-                }
-            });
-
-            satelliteHolder.add(model);
-            satelliteHolder.rotation.x = THREE.MathUtils.degToRad(18);
-            satelliteHolder.rotation.y = THREE.MathUtils.degToRad(-20);
-            satelliteModel = model;
-            console.log("SATELLITE LOADED");
-        },
-        undefined,
-        error => console.error("SATELLITE ERROR", error)
+    scene.add(
+        orbit2
     );
 
-    const starGeometry = new THREE.BufferGeometry();
-    const starPositions = [];
+    const satellite =
+        new THREE.Group();
 
-    for (let i = 0; i < 500; i++) {
+    const bodyGeometry =
+        new THREE.BoxGeometry(
+            0.25,
+            0.18,
+            0.36
+        );
+
+    const bodyMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x8b9295,
+            roughness: 0.65,
+            metalness: 0.5
+        });
+
+    const body =
+        new THREE.Mesh(
+            bodyGeometry,
+            bodyMaterial
+        );
+
+    satellite.add(
+        body
+    );
+
+    const instrumentGeometry =
+        new THREE.BoxGeometry(
+            0.14,
+            0.10,
+            0.13
+        );
+
+    const instrumentMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0xb18a48,
+            roughness: 0.5,
+            metalness: 0.5
+        });
+
+    const instrument =
+        new THREE.Mesh(
+            instrumentGeometry,
+            instrumentMaterial
+        );
+
+    instrument.position.z =
+        -0.21;
+
+    satellite.add(
+        instrument
+    );
+
+    const panelGeometry =
+        new THREE.BoxGeometry(
+            0.72,
+            0.025,
+            0.22
+        );
+
+    const panelMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x253038,
+            roughness: 0.5,
+            metalness: 0.6
+        });
+
+    const panelLeft =
+        new THREE.Mesh(
+            panelGeometry,
+            panelMaterial
+        );
+
+    panelLeft.position.x =
+        -0.48;
+
+    satellite.add(
+        panelLeft
+    );
+
+    const panelRight =
+        new THREE.Mesh(
+            panelGeometry,
+            panelMaterial
+        );
+
+    panelRight.position.x =
+        0.48;
+
+    satellite.add(
+        panelRight
+    );
+
+    const antennaGeometry =
+        new THREE.CylinderGeometry(
+            0.012,
+            0.012,
+            0.30,
+            10
+        );
+
+    const antennaMaterial =
+        new THREE.MeshBasicMaterial({
+            color: 0xc5c9ca
+        });
+
+    const antenna =
+        new THREE.Mesh(
+            antennaGeometry,
+            antennaMaterial
+        );
+
+    antenna.rotation.z =
+        THREE.MathUtils.degToRad(
+            45
+        );
+
+    antenna.position.set(
+        0,
+        0.19,
+        0
+    );
+
+    satellite.add(
+        antenna
+    );
+
+    const dishGeometry =
+        new THREE.CylinderGeometry(
+            0.10,
+            0.03,
+            0.035,
+            24
+        );
+
+    const dishMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0xbfc6ca,
+            roughness: 0.6,
+            metalness: 0.4
+        });
+
+    const dish =
+        new THREE.Mesh(
+            dishGeometry,
+            dishMaterial
+        );
+
+    dish.position.set(
+        0,
+        0.36,
+        0
+    );
+
+    satellite.add(
+        dish
+    );
+
+    const markerGeometry =
+        new THREE.SphereGeometry(
+            0.035,
+            12,
+            12
+        );
+
+    const markerMaterial =
+        new THREE.MeshBasicMaterial({
+            color: 0xd6a454
+        });
+
+    const marker =
+        new THREE.Mesh(
+            markerGeometry,
+            markerMaterial
+        );
+
+    satellite.add(
+        marker
+    );
+
+    satellite.scale.setScalar(
+        0.85
+    );
+
+    scene.add(
+        satellite
+    );
+
+    const starGeometry =
+        new THREE.BufferGeometry();
+
+    const starPositions =
+        [];
+
+    for (
+        let i = 0;
+        i < 500;
+        i++
+    ) {
+        const radius =
+            THREE.MathUtils.randFloat(
+                5,
+                15
+            );
+
+        const theta =
+            Math.random() *
+            Math.PI *
+            2;
+
+        const phi =
+            Math.acos(
+                THREE.MathUtils
+                    .randFloatSpread(
+                        2
+                    )
+            );
+
         starPositions.push(
-            THREE.MathUtils.randFloatSpread(12),
-            THREE.MathUtils.randFloatSpread(8),
-            THREE.MathUtils.randFloat(-5, -1)
+            radius *
+                Math.sin(phi) *
+                Math.cos(theta),
+
+            radius *
+                Math.sin(phi) *
+                Math.sin(theta),
+
+            radius *
+                Math.cos(phi)
         );
     }
 
     starGeometry.setAttribute(
         "position",
-        new THREE.Float32BufferAttribute(starPositions, 3)
+        new THREE.Float32BufferAttribute(
+            starPositions,
+            3
+        )
     );
 
-    const stars = new THREE.Points(
-        starGeometry,
+    const starMaterial =
         new THREE.PointsMaterial({
-            color: 0xbfc7cb,
+            color: 0xbfc6ca,
             size: 0.018,
             transparent: true,
-            opacity: 0.65
-        })
+            opacity: 0.55
+        });
+
+    const stars =
+        new THREE.Points(
+            starGeometry,
+            starMaterial
+        );
+
+    scene.add(
+        stars
     );
-    scene.add(stars);
 
     let mouseX = 0;
     let mouseY = 0;
-    let smoothX = 0;
-    let smoothY = 0;
 
-    container.addEventListener("mousemove", event => {
-        const rect = container.getBoundingClientRect();
-        mouseX = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouseY = ((event.clientY - rect.top) / rect.height) * 2 - 1;
-    });
+    let targetX = 0;
+    let targetY = 0;
 
-    container.addEventListener("mouseleave", () => {
-        mouseX = 0;
-        mouseY = 0;
-    });
+    moonContainer.addEventListener(
+        "mousemove",
+        event => {
+            const rect =
+                moonContainer
+                    .getBoundingClientRect();
 
-    const clock = new THREE.Clock();
+            mouseX =
+                (
+                    (
+                        event.clientX -
+                        rect.left
+                    ) /
+                    rect.width
+                ) *
+                    2 -
+                1;
+
+            mouseY =
+                (
+                    (
+                        event.clientY -
+                        rect.top
+                    ) /
+                    rect.height
+                ) *
+                    2 -
+                1;
+        }
+    );
+
+    moonContainer.addEventListener(
+        "mouseleave",
+        () => {
+            mouseX = 0;
+            mouseY = 0;
+        }
+    );
+
+    const clock =
+        new THREE.Clock();
 
     function animate() {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(
+            animate
+        );
 
-        const elapsed = clock.getElapsedTime();
-        moon.rotation.y += 0.00035;
+        const elapsed =
+            clock.getElapsedTime();
 
-        smoothX += (mouseX * 0.04 - smoothX) * 0.04;
-        smoothY += (mouseY * 0.03 - smoothY) * 0.04;
-        moon.rotation.x = smoothY;
-        moon.rotation.z = smoothX * 0.5;
-        glow.rotation.copy(moon.rotation);
+        moon.rotation.y +=
+            0.0018;
 
-        const angle = elapsed * 0.3;
-        const x = Math.cos(angle) * ORBIT_WIDTH;
-        const y = Math.sin(angle) * ORBIT_HEIGHT;
+        atmosphere.rotation.y =
+            moon.rotation.y;
 
-        const finalX =
-            x * Math.cos(ORBIT_TILT) -
-            y * Math.sin(ORBIT_TILT);
+        const angle =
+            elapsed * 0.38;
 
-        const finalY =
-            x * Math.sin(ORBIT_TILT) +
-            y * Math.cos(ORBIT_TILT);
+        const orbitX =
+            Math.cos(angle) *
+            2.55;
 
-        satellitePivot.position.set(finalX, finalY, 0.8);
-        satellitePivot.rotation.z = angle + ORBIT_TILT + Math.PI / 2;
+        const orbitZ =
+            Math.sin(angle) *
+            1.65;
 
-        if (satelliteModel) {
-            satelliteHolder.rotation.y = elapsed * 0.22;
-            satelliteHolder.rotation.z = Math.sin(elapsed * 0.7) * 0.06;
-        }
+        satellite.position.set(
+            orbitX,
+            Math.sin(
+                angle * 0.7
+            ) * 0.38,
+            orbitZ
+        );
 
-        secondOrbit.rotation.z =
-            THREE.MathUtils.degToRad(28) +
-            Math.sin(elapsed * 0.08) * 0.04;
+        satellite.rotation.y =
+            -angle +
+            Math.PI / 2;
 
-        stars.rotation.z = elapsed * 0.001;
-        renderer.render(scene, camera);
+        satellite.rotation.z =
+            Math.sin(
+                elapsed * 0.7
+            ) * 0.08;
+
+        antenna.rotation.x =
+            Math.sin(
+                elapsed * 1.5
+            ) * 0.08;
+
+        stars.rotation.y =
+            elapsed * 0.003;
+
+        targetX +=
+            (
+                mouseX * 0.12 -
+                targetX
+            ) *
+            0.04;
+
+        targetY +=
+            (
+                mouseY * 0.08 -
+                targetY
+            ) *
+            0.04;
+
+        moon.rotation.x =
+            targetY;
+
+        moon.rotation.z =
+            targetX * 0.3;
+
+        orbit.rotation.y =
+            elapsed * 0.015;
+
+        orbit2.rotation.y =
+            -elapsed * 0.009;
+
+        renderer.render(
+            scene,
+            camera
+        );
     }
 
     animate();
 
-    window.addEventListener("resize", () => {
-        const width = container.clientWidth;
-        const height = container.clientHeight;
-        if (!width || !height) return;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height);
-    });
+    window.addEventListener(
+        "resize",
+        () => {
+            const newWidth =
+                Math.max(
+                    moonContainer.clientWidth,
+                    1
+                );
+
+            const newHeight =
+                Math.max(
+                    moonContainer.clientHeight,
+                    1
+                );
+
+            camera.aspect =
+                newWidth /
+                newHeight;
+
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(
+                newWidth,
+                newHeight
+            );
+        }
+    );
 }

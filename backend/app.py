@@ -402,6 +402,48 @@ def choose_metadata_value(records):
     }
 
 
+def detect_terrain_feature_type(text):
+    lowered = text.lower()
+
+    patterns = [
+        r"<(?:terrain_feature_type|feature_type|terrain_type|landform_type|feature_class)[^>]*>\s*([^<]+)",
+        r'["\']?(?:terrain_feature_type|feature_type|terrain_type|landform_type|feature_class)["\']?\s*[:=]\s*["\']?([a-zA-Z0-9 _/-]+)'
+    ]
+
+    candidates = []
+
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            candidates.append(match.group(1).strip().lower())
+
+    candidates.append(lowered)
+
+    for value in candidates:
+        if any(token in value for token in ["crater", "impact crater", "impact_crater"]):
+            return "crater"
+
+    for value in candidates:
+        if any(token in value for token in ["mountain", "peak", "hill", "ridge", "massif"]):
+            return "peak_ridge"
+
+    return None
+
+
+def normalize_terrain_feature_type(value):
+    if value is None:
+        return None
+
+    text = str(value).strip().lower()
+
+    if "crater" in text:
+        return "crater"
+
+    if any(token in text for token in ["mountain", "peak", "hill", "ridge", "massif"]):
+        return "peak_ridge"
+
+    return None
+
+
 @app.post("/api/metadata/extract")
 async def extract_metadata(metadata_file: UploadFile = File(...)):
     raw = await metadata_file.read()
@@ -430,6 +472,7 @@ async def extract_metadata(metadata_file: UploadFile = File(...)):
         parse_method = "TEXT/LBL FALLBACK"
 
     detected = choose_metadata_value(records)
+    detected["terrain_feature_type"] = detect_terrain_feature_type(text)
 
     if all(detected[key] is None for key in [
         "ground_resolution_m_per_pixel",
@@ -698,12 +741,27 @@ def terrain_measure(
     measurement_type: str = Form(...),
     pixel_distance: float = Form(...),
     ground_resolution: float = Form(...),
-    sun_incidence: float | None = Form(None)
+    sun_incidence: float | None = Form(None),
+    terrain_feature_type: str | None = Form(None)
 ):
     allowed = {"crater_diameter", "crater_depth", "hill_height"}
 
     if measurement_type not in allowed:
         raise HTTPException(status_code=400, detail="Invalid terrain measurement type.")
+
+    feature_type = normalize_terrain_feature_type(terrain_feature_type)
+
+    if feature_type == "crater" and measurement_type == "hill_height":
+        raise HTTPException(
+            status_code=422,
+            detail="Terrain type mismatch: this region is identified as a CRATER. Hill / ridge height cannot be used here. Select CRATER DEPTH or CRATER DIAMETER."
+        )
+
+    if feature_type == "peak_ridge" and measurement_type in {"crater_diameter", "crater_depth"}:
+        raise HTTPException(
+            status_code=422,
+            detail="Terrain type mismatch: this region is identified as a PEAK / RIDGE. Select HILL / RIDGE HEIGHT."
+        )
 
     if pixel_distance <= 0:
         raise HTTPException(status_code=400, detail="Pixel distance must be greater than zero.")
@@ -717,6 +775,8 @@ def terrain_measure(
         return {
             "status": "success",
             "measurement_type": measurement_type,
+            "terrain_feature_type": feature_type,
+            "feature_validation": "compatible" if feature_type else "unverified",
             "pixel_distance": round(pixel_distance, 3),
             "ground_resolution": round(ground_resolution, 6),
             "ground_distance_m": round(ground_distance, 3),
@@ -748,6 +808,8 @@ def terrain_measure(
     return {
         "status": "success",
         "measurement_type": measurement_type,
+        "terrain_feature_type": feature_type,
+        "feature_validation": "compatible" if feature_type else "unverified",
         "pixel_distance": round(pixel_distance, 3),
         "ground_resolution": round(ground_resolution, 6),
         "ground_distance_m": round(ground_distance, 3),
@@ -758,3 +820,4 @@ def terrain_measure(
         "method": "Shadow length × tan(solar elevation)",
         "warning": warning
     }
+

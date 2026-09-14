@@ -57,6 +57,8 @@ const terrainSunSource = $("terrainSunSource");
 const terrainLoadBtn = $("terrainLoadBtn");
 const terrainCalculateBtn = $("terrainCalculateBtn");
 const terrainClearBtn = $("terrainClearBtn");
+const terrainFeatureTypeStatus = $("terrainFeatureTypeStatus");
+const terrainFeatureCard = $("terrainFeatureCard");
 
 function setText(id, value) {
     const el = $(id);
@@ -130,6 +132,12 @@ function metadataSummary(data) {
     if (data.sun_azimuth_deg != null) {
         parts.push(`AZ ${Number(data.sun_azimuth_deg).toFixed(2)}°`);
     }
+    if (data.terrain_feature_type === "crater") {
+        parts.push("CRATER");
+    }
+    if (data.terrain_feature_type === "peak_ridge") {
+        parts.push("PEAK / RIDGE");
+    }
     return parts.length ? parts.join(" · ") : "METADATA READ";
 }
 
@@ -145,6 +153,7 @@ function applyMetadataToUi(source, data) {
 
     if ((terrainSource?.value || "A") === source) {
         syncTerrainSunAngle();
+        syncTerrainFeatureType();
     }
 }
 
@@ -527,6 +536,87 @@ function terrainFileForSource() {
     return terrainSource?.value === "B" ? state.imageB : state.imageA;
 }
 
+function currentTerrainFeatureType() {
+    const source = terrainSource?.value === "B" ? "B" : "A";
+    const metadata = metadataForSource(source);
+    return metadata?.terrain_feature_type || null;
+}
+
+function terrainFeatureLabel(featureType) {
+    if (featureType === "crater") return "CRATER";
+    if (featureType === "peak_ridge") return "PEAK / RIDGE";
+    return "UNKNOWN";
+}
+
+function syncTerrainFeatureType() {
+    const featureType = currentTerrainFeatureType();
+
+    if (terrainFeatureTypeStatus) {
+        if (featureType === "crater") {
+            terrainFeatureTypeStatus.textContent = "CRATER · CRATER MEASUREMENTS ONLY";
+        } else if (featureType === "peak_ridge") {
+            terrainFeatureTypeStatus.textContent = "PEAK / RIDGE · PEAK DETAILING ACTIVE";
+        } else {
+            terrainFeatureTypeStatus.textContent = "UNKNOWN · NO FEATURE-TYPE METADATA";
+        }
+    }
+
+    setText("terrainFeatureCheck", terrainFeatureLabel(featureType));
+    setText(
+        "terrainFeatureDetail",
+        featureType ? "AUTO FROM FEATURE METADATA" : "FEATURE TYPE NOT AVAILABLE"
+    );
+
+    if (terrainFeatureCard) {
+        terrainFeatureCard.classList.remove("feature-compatible", "feature-mismatch");
+        if (featureType) terrainFeatureCard.classList.add("feature-compatible");
+    }
+
+    validateTerrainMeasurementChoice(false);
+}
+
+function validateTerrainMeasurementChoice(showMessage = true) {
+    const featureType = currentTerrainFeatureType();
+    const measurementType = terrainMeasurementType?.value || "crater_depth";
+    let message = "";
+
+    if (featureType === "crater" && measurementType === "hill_height") {
+        message = "Terrain type mismatch: CRATER detected. Hill / ridge height is not valid here. Choose CRATER DEPTH or CRATER DIAMETER.";
+    }
+
+    if (featureType === "peak_ridge" && (measurementType === "crater_depth" || measurementType === "crater_diameter")) {
+        message = "Terrain type mismatch: PEAK / RIDGE detected. Choose HILL / RIDGE HEIGHT.";
+    }
+
+    if (message) {
+        if (terrainCalculateBtn) {
+            terrainCalculateBtn.disabled = true;
+            terrainCalculateBtn.style.opacity = ".45";
+        }
+        setText("terrainFeatureCheck", "TYPE MISMATCH");
+        setText("terrainFeatureDetail", "SELECT A COMPATIBLE MEASUREMENT");
+        setText("terrainWarning", message);
+        if (terrainFeatureCard) {
+            terrainFeatureCard.classList.remove("feature-compatible");
+            terrainFeatureCard.classList.add("feature-mismatch");
+        }
+        if (showMessage) showToast(message);
+        return false;
+    }
+
+    if (terrainCalculateBtn) {
+        terrainCalculateBtn.disabled = false;
+        terrainCalculateBtn.style.opacity = "1";
+    }
+
+    if (terrainFeatureCard) {
+        terrainFeatureCard.classList.remove("feature-mismatch");
+        if (featureType) terrainFeatureCard.classList.add("feature-compatible");
+    }
+
+    return true;
+}
+
 function setTerrainInstruction() {
     if (!terrainMeasurementType || !terrainInstruction) return;
     if (terrainMeasurementType.value === "crater_diameter") {
@@ -587,7 +677,13 @@ function resetTerrainResults() {
     setText("terrainSolarElevation", "—");
     setText("terrainResultName", "ESTIMATED RELIEF");
     setText("terrainResultMethod", "WAITING FOR MEASUREMENT");
+    setText("terrainFeatureCheck", terrainFeatureLabel(currentTerrainFeatureType()));
+    setText(
+        "terrainFeatureDetail",
+        currentTerrainFeatureType() ? "AUTO FROM FEATURE METADATA" : "FEATURE TYPE NOT AVAILABLE"
+    );
     setText("terrainWarning", "Depth and height are estimates. Upload the matching mission metadata file to auto-fill ground resolution and Sun incidence whenever those fields are available.");
+    validateTerrainMeasurementChoice(false);
 }
 
 function drawTerrainCanvas() {
@@ -679,6 +775,10 @@ function clearTerrainPoints() {
 }
 
 async function calculateTerrainMeasurement() {
+    if (!validateTerrainMeasurementChoice(true)) {
+        return;
+    }
+
     if (terrainState.points.length !== 2) {
         showToast("Select exactly two points on the terrain image first.");
         return;
@@ -697,6 +797,11 @@ async function calculateTerrainMeasurement() {
     form.append("measurement_type", measurementType);
     form.append("pixel_distance", String(pixelDistance));
     form.append("ground_resolution", String(gsd));
+
+    const featureType = currentTerrainFeatureType();
+    if (featureType) {
+        form.append("terrain_feature_type", featureType);
+    }
 
     if (measurementType !== "crater_diameter") {
         const incidence = Number(terrainSunIncidence?.value);
@@ -730,15 +835,35 @@ async function calculateTerrainMeasurement() {
             data.solar_elevation == null ? "N/A" : `${Number(data.solar_elevation).toFixed(1)}°`
         );
         setText("terrainWarning", data.warning);
+
+        if (data.terrain_feature_type) {
+            setText("terrainFeatureCheck", terrainFeatureLabel(data.terrain_feature_type));
+            setText("terrainFeatureDetail", "TYPE VERIFIED · MEASUREMENT COMPATIBLE");
+            if (terrainFeatureCard) {
+                terrainFeatureCard.classList.remove("feature-mismatch");
+                terrainFeatureCard.classList.add("feature-compatible");
+            }
+        } else {
+            setText("terrainFeatureCheck", "UNVERIFIED");
+            setText("terrainFeatureDetail", "NO TERRAIN TYPE IN METADATA");
+        }
+
         showToast("Terrain measurement calculated.");
     } catch (error) {
         console.error(error);
-        showToast(error.message || "Terrain measurement failed.");
-    } finally {
-        if (terrainCalculateBtn) {
-            terrainCalculateBtn.disabled = false;
-            terrainCalculateBtn.style.opacity = "1";
+        const message = error.message || "Terrain measurement failed.";
+        if (message.toLowerCase().includes("terrain type mismatch")) {
+            setText("terrainFeatureCheck", "TYPE MISMATCH");
+            setText("terrainFeatureDetail", "MEASUREMENT BLOCKED");
+            setText("terrainWarning", message);
+            if (terrainFeatureCard) {
+                terrainFeatureCard.classList.remove("feature-compatible");
+                terrainFeatureCard.classList.add("feature-mismatch");
+            }
         }
+        showToast(message);
+    } finally {
+        validateTerrainMeasurementChoice(false);
     }
 }
 
@@ -784,6 +909,7 @@ if (terrainSource) {
     terrainSource.addEventListener("change", () => {
         clearTerrainPoints();
         syncTerrainSunAngle();
+        syncTerrainFeatureType();
     });
 }
 
@@ -792,11 +918,14 @@ if (terrainMeasurementType) {
         clearTerrainPoints();
         syncTerrainSunAngle();
         setTerrainInstruction();
+        syncTerrainFeatureType();
+        validateTerrainMeasurementChoice(true);
     });
 }
 
 setTerrainInstruction();
 syncTerrainSunAngle();
+syncTerrainFeatureType();
 
 
 let detectionPoints = [];
